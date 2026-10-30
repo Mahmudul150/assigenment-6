@@ -3,6 +3,11 @@ import cors from 'cors'
 import config from './app/config';
 import cookieParser from 'cookie-parser';
 import httpStatus from 'http-status'
+import { AuthRouter } from './app/module/auth/auth.router';
+import { globalErrorHandler } from './app/middleware/globalErrorhandler';
+import { CandidateRouter } from './app/module/users/candidate.route.';
+import { CompnayRoute } from './app/module/company/company.router';
+import { problemRouter } from './app/module/problem/problem.router';
 
 const app: Application = express();
 
@@ -20,11 +25,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+//routing setup
+app.use('/api/v1/auth',AuthRouter)
+app.use('/api/v1/candidate',CandidateRouter)
+app.use('/api/v1/company',CompnayRoute)
+app.use('/api/v1/problem',problemRouter)
+
+
 app.get("/", async (req: Request, res: Response) => {
 	res.status(httpStatus.OK).json({
 		success: true,
 		message: "Welcome to developers coders Backend",
 	});
 });
+
+app.use(globalErrorHandler)
 
 export default app

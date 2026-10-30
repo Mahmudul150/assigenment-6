@@ -1,0 +1,21 @@
+model CompanyProfile {
+  id          String   @id @default(uuid())
+  name        String
+  website     String?
+  industry    String?
+  description String?
+  logoUrl     String?
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  problems    Problem[]
+  assessments Assessment[]
+payments    Payment[]
+
+  @@index([isApproved])
+  @@map("company_profiles")
+}

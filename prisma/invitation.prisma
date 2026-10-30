@@ -1,0 +1,18 @@
+model Invitation {
+  id           String           @id @default(uuid())
+  assessmentId String
+  candidateId  String?
+  email        String
+  token        String           @unique
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime
+  createdAt    DateTime         @default(now())
+
+  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  candidate  CandidateProfile? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  attempt    Attempt?
+
+  
+  @@unique([assessmentId, email])
+  @@map("invitations")
+}

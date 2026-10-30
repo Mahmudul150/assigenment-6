@@ -1,0 +1,16 @@
+model Attempt {
+  id             String        @id @default(uuid())
+  invitationId   String        @unique
+  status         AttemptStatus @default(IN_PROGRESS)
+  startedAt      DateTime      @default(now())
+  deadlineAt     DateTime
+  submittedAt    DateTime?
+  totalScore     Int?          @default(0)
+  tabSwitchCount Int           @default(0)
+  ipAddress      String?
+
+  invitation  Invitation   @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@map("attempts")
+}

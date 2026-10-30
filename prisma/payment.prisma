@@ -1,0 +1,21 @@
+model Payment {
+  id            String        @id @default(uuid())
+  companyId     String
+  assessmentId  String
+  amount        Float
+  currency      String        @default("BDT")
+  method        String        // bKash, SSLCommerz, etc.
+  status        PaymentStatus @default(PENDING)
+  bkashPaymentId String?
+  bkashTrxId    String?
+  failureReason String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  company    CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assessment Assessment     @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}

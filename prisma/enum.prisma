@@ -1,0 +1,60 @@
+enum Role {
+  ADMIN
+  COMPANY
+  CANDIDATE
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  INACTIVE
+}
+
+enum AuthProvider {
+  CREDENTIAL
+  GOOGLE
+}
+
+enum ProblemType {
+  MCQ
+  WRITTEN
+  CODING
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EVALUATED
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  EVALUATED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}

@@ -1,0 +1,22 @@
+model User {
+  id                 String            @id @default(uuid())
+  name               String
+  email              String            @unique
+  password           String?
+  googleId           String?           @unique
+  role               Role             
+  status             UserStatus        @default(ACTIVE)
+  authProvider       AuthProvider      @default(CREDENTIAL)
+  emailVerified      Boolean           @default(false)
+  needPasswordChange Boolean           @default(false)
+  imageUrl           String?
+  imagePublicId      String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  isDeleted          Boolean           @default(false)
+  deletedAt          DateTime?
+  candidate          CandidateProfile?
+  company            CompanyProfile?
+  auditLogs            AuditLog[]
+  @@map("user")
+}

@@ -1,0 +1,14 @@
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entityType String   // Problem, Assessment, User, etc.
+  entityId   String?
+  metadata   Json?    // অতিরিক্ত কোনো তথ্য রাখার জন্য
+  createdAt  DateTime @default(now())
+
+  // Relation
+  actor User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}

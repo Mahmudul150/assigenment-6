@@ -1,0 +1,22 @@
+model Assessment {
+  id              String           @id @default(uuid())
+  companyId       String
+  title           String
+  description     String?          @db.Text
+  durationMinutes Int
+  passingScore    Int              @default(0)
+  status          AssessmentStatus @default(DRAFT)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  company     CompanyProfile      @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  problems    AssessmentProblem[]
+  invitations Invitation[]
+  payments    Payment[]
+
+  @@map("assessments")
+}
