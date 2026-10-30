@@ -369,10 +369,11 @@ const deleteProblemById = async (
     );
   }
 
-  const existProblem = await prisma.problem.findFirst({
+  const existProblem = await prisma.problem.findUnique({
     where: {
       id: problemId,
       companyId: existCompanyProfile.id,
+      deletedAt:null
     },
   });
 

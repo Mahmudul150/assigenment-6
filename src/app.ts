@@ -8,6 +8,8 @@ import { globalErrorHandler } from './app/middleware/globalErrorhandler';
 import { CandidateRouter } from './app/module/users/candidate.route.';
 import { CompnayRoute } from './app/module/company/company.router';
 import { problemRouter } from './app/module/problem/problem.router';
+import { assesmentRoute } from './app/module/assesment/assesment.router';
+import { assesmentProblemRouter } from './app/module/assesmentProblems/assPbm.router';
 
 const app: Application = express();
 
@@ -30,6 +32,8 @@ app.use('/api/v1/auth',AuthRouter)
 app.use('/api/v1/candidate',CandidateRouter)
 app.use('/api/v1/company',CompnayRoute)
 app.use('/api/v1/problem',problemRouter)
+app.use('/api/v1/assesment',assesmentRoute)
+app.use('/api/v1/assesmentproblem',assesmentProblemRouter)
 
 
 app.get("/", async (req: Request, res: Response) => {

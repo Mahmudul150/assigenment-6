@@ -8,7 +8,7 @@ import { problemValidationSchema } from "./problem.validate";
 const router = Router()
 
 router.post('/create-problem', zodValidate(problemValidationSchema.createProblemSchema) , auth(Role.COMPANY) , problemCOntroller.problemCreate)
-router.get('/all-problems' , problemCOntroller.getAllProblems)
+router.get('/all-problems', auth(Role.ADMIN) , problemCOntroller.getAllProblems)
 router.get('/my-problems', auth(Role.COMPANY) , problemCOntroller.getMyProblems)
 router.get("/:problemid", problemCOntroller.getProblemById);
 router.patch(

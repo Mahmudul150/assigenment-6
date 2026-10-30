@@ -6,9 +6,11 @@ model Payment {
   currency      String        @default("BDT")
   method        String        // bKash, SSLCommerz, etc.
   status        PaymentStatus @default(PENDING)
+  merchantInvoiceNumber String        @unique 
   bkashPaymentId String?
   bkashTrxId    String?
   failureReason String?
+  getWayResponse Json?
   paidAt        DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
