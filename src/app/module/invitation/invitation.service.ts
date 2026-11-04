@@ -110,7 +110,7 @@ const createInvitation = async (
       html,
     });
   } catch (error) {
-    // Email failed, remove created invitation
+    
     await prisma.invitation.delete({
       where: {
         id: invitation.id,
@@ -340,7 +340,7 @@ const getSingleInvitation = async (
     return invitation;
   }
 
-  // CANDIDATE can see own invitation
+ 
   if (user.role === "CANDIDATE") {
     const candidate =  await prisma.candidateProfile.findUnique({
         where: {

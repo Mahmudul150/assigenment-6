@@ -4,7 +4,7 @@ import { AppError } from "../../middleware/appError";
 import { IAuditLogFilters, ICreateAuditLog } from "./auditLog.interface";
 import { Prisma } from "../../../../generated/prisma/client";
 
-// Create Audit Log
+
 const createAuditLog = async (payload: ICreateAuditLog) => {
   const result = await prisma.auditLog.create({
     data: {
@@ -19,7 +19,6 @@ const createAuditLog = async (payload: ICreateAuditLog) => {
   return result;
 };
 
-// Get Audit Logs with Filter and Pagination
 const getAuditLogs = async (filters: IAuditLogFilters) => {
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 20;
@@ -80,7 +79,6 @@ const getAuditLogs = async (filters: IAuditLogFilters) => {
   };
 };
 
-// Get Single Audit Log
 const getSingleAuditLog = async (id: string) => {
   const result = await prisma.auditLog.findUnique({
     where: {

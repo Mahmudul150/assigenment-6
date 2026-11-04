@@ -5,117 +5,104 @@ import httpStatus from "http-status";
 import { AttemptService } from "./attempt.service";
 import { AppError } from "../../middleware/appError";
 
-const createAttempt = catchAsync(async (req:Request, res:Response) => {
+const createAttempt = catchAsync(async (req: Request, res: Response) => {
+  const invitationId = req.params.invitationId as string;
+  const user = req.user!;
 
-    const invitationId = req.params.invitationId as string;
-    const user = req.user!;
+  if (!user) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User is not authenticated");
+  }
 
-      if (!user) {
-        throw new AppError(
-            httpStatus.UNAUTHORIZED,
-            "User is not authenticated"
-        );
-    }
+  const result = await AttemptService.createAttempt(invitationId, user!);
 
-    const result = await AttemptService.createAttempt(invitationId, user!);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "attempt created successfully",
+    data: result,
+  });
+});
 
-     sendResponse(res, {
-      statusCode: httpStatus.CREATED,
-      success: true,
-      message: "attempt created successfully",
-      data: result,
-    });
-})
+const getAllAttempts = catchAsync(async (req: Request, res: Response) => {
+  const quary = req.query;
 
+  const result = await AttemptService.getAllAttempts(quary);
 
-const getAllAttempts = catchAsync(async (req:Request, res:Response) => {
-
-   const quary = req.query;
-
-    const result = await AttemptService.getAllAttempts(quary);
-
-     sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "all attempts retrieved successfully",
-      data: result,
-    });
-})
-const getSingleAttempt = catchAsync(async (req:Request, res:Response) => {
-
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "all attempts retrieved successfully",
+    data: result,
+  });
+});
+const getSingleAttempt = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id as string;
   const user = req.user!;
 
-    const result = await AttemptService.getSingleAttempt(id, user);
+  const result = await AttemptService.getSingleAttempt(id, user);
 
-     sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "single attempt retrieved successfully",
-      data: result,
-    });
-})
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "single attempt retrieved successfully",
+    data: result,
+  });
+});
 
-const getMyAttempts = catchAsync(async (req:Request, res:Response) => {
-
+const getMyAttempts = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
 
-    const result = await AttemptService.getMyAttempts(user);
+  const result = await AttemptService.getMyAttempts(user);
 
-     sendResponse(res, {
-      statusCode: httpStatus.CREATED,
-      success: true,
-      message: "my attempts retrieved successfully",
-      data: result,
-    });
-})
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "my attempts retrieved successfully",
+    data: result,
+  });
+});
 
 const getAttemptProblems = catchAsync(async (req: Request, res: Response) => {
-    const attemptId = req.params.attemptId as string;
-    const user = req.user!;
+  const attemptId = req.params.attemptId as string;
+  const user = req.user!;
 
-    const result = await AttemptService.getAttemptProblems( attemptId,user);
+  const result = await AttemptService.getAttemptProblems(attemptId, user);
 
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Attempt problems retrieved successfully",
-      data: result,
-    });
-  }
-);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Attempt problems retrieved successfully",
+    data: result,
+  });
+});
 
-
-const tabSwitch = catchAsync( async (req: Request, res: Response) => {
-    const attemptId = req.params.id as string;
-    const user = req.user!;
-
-    const result = await AttemptService.tabSwitch( attemptId,user);
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Tab switch count updated successfully",
-      data: result,
-    });
-  }
-);
-
-
-const submitAttempt = catchAsync(async (req:Request, res:Response) => {
-
+const tabSwitch = catchAsync(async (req: Request, res: Response) => {
   const attemptId = req.params.id as string;
   const user = req.user!;
 
-    const result = await AttemptService.submitAttempt(attemptId, user);
+  const result = await AttemptService.tabSwitch(attemptId, user);
 
-     sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "attempt submitted successfully",
-      data: result,
-    });
-})
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Tab switch count updated successfully",
+    data: result,
+  });
+});
+
+const submitAttempt = catchAsync(async (req: Request, res: Response) => {
+  const attemptId = req.params.id as string;
+  const user = req.user!;
+
+  const result = await AttemptService.submitAttempt(attemptId, user);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "attempt submitted successfully",
+    data: result,
+  });
+});
 
 const getMyResult = catchAsync(async (req: Request, res: Response) => {
   const attemptId = req.params.attemptId as string;
@@ -132,12 +119,12 @@ const getMyResult = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const attemptController = {
-    createAttempt,
-    getAllAttempts,
-    getSingleAttempt,
-    getMyAttempts,
-    getAttemptProblems,
-    tabSwitch,
-    submitAttempt,
-    getMyResult
-}
+  createAttempt,
+  getAllAttempts,
+  getSingleAttempt,
+  getMyAttempts,
+  getAttemptProblems,
+  tabSwitch,
+  submitAttempt,
+  getMyResult,
+};

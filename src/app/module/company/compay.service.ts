@@ -161,7 +161,6 @@ const verifyCompanyEmail = async (payload: IVerifyCompanyEmailPayload) => {
 };
 
 const isApproved = async(payload:IApproveCompany, Admin:RequestUser)=>{
-    // const {companyId } = payload
 
     const existCompany = await prisma.companyProfile.findUnique({
         where:{

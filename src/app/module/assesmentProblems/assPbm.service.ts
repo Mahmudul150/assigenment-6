@@ -7,14 +7,12 @@ import { AuditLogService } from "../auditlogs/auditLog.service";
 import { IAddProblemsToAssessment } from "./assPbm.interface";
 import httpStatus from "http-status";
 
-
 const createProblemsToAssessment = async (
   assessmentId: string,
   payload: IAddProblemsToAssessment,
-  user: RequestUser
+  user: RequestUser,
 ) => {
-
-    const company = await prisma.companyProfile.findUnique({
+  const company = await prisma.companyProfile.findUnique({
     where: {
       userId: user.userId,
     },
@@ -23,7 +21,7 @@ const createProblemsToAssessment = async (
   if (!company || !company.isApproved) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "Company not found or not approved"
+      "Company not found or not approved",
     );
   }
 
@@ -35,22 +33,17 @@ const createProblemsToAssessment = async (
   });
 
   if (!assessment) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Assessment not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found");
   }
 
-   if (assessment.status !== "DRAFT") {
+  if (assessment.status !== "DRAFT") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Only draft assessment can be modified"
+      "Only draft assessment can be modified",
     );
   }
 
-  const problemIds = payload.problems.map(
-    (item) => item.problemId
-  );
+  const problemIds = payload.problems.map((item) => item.problemId);
 
   const problems = await prisma.problem.findMany({
     where: {
@@ -58,15 +51,12 @@ const createProblemsToAssessment = async (
         in: problemIds,
       },
       companyId: company.id,
-       deletedAt: null,
+      deletedAt: null,
     },
   });
 
   if (problems.length !== problemIds.length) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Invalid problem ID"
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid problem ID");
   }
 
   const alreadyAdded = await prisma.assessmentProblem.findMany({
@@ -79,10 +69,7 @@ const createProblemsToAssessment = async (
   });
 
   if (alreadyAdded.length > 0) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Problem already added"
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, "Problem already added");
   }
 
   const result = await prisma.assessmentProblem.createMany({
@@ -109,12 +96,10 @@ const createProblemsToAssessment = async (
   return result;
 };
 
-
-
 const getProblemsToAssessmen = async (
-    query:IQuery,
+  query: IQuery,
   assessmentId: string,
-  user: RequestUser
+  user: RequestUser,
 ) => {
   const companyProfile = await prisma.companyProfile.findUnique({
     where: {
@@ -123,10 +108,7 @@ const getProblemsToAssessmen = async (
   });
 
   if (!companyProfile) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Company profile not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
   }
 
   const assessment = await prisma.assessment.findUnique({
@@ -137,57 +119,46 @@ const getProblemsToAssessmen = async (
   });
 
   if (!assessment) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Assessment not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found");
   }
 
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "order";
+  const sortOrder = query.sortOrder ? query.sortOrder : "asc";
 
-     const limit = query.limit ? Number(query.limit) : 10;
-           const page = query.page ? Number(query.page) : 1;
-           const skip = (page - 1) * limit;
-           const sortBy = query.sortBy ? query.sortBy : "order";
-           const sortOrder = query.sortOrder ? query.sortOrder : "asc";
-      
-           const andConditions: AssessmentProblemWhereInput[] = [
-            {assessmentId}
-           ];
+  const andConditions: AssessmentProblemWhereInput[] = [{ assessmentId }];
 
+  const assesmentProblem = await prisma.assessmentProblem.findMany({
+    where: { AND: andConditions },
+    take: limit,
+    skip,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      assessment: true,
+    },
+  });
 
-    
-    	const assesmentProblem = await prisma.assessmentProblem.findMany({
-		where: { AND: andConditions },
-		take: limit,
-		skip,
-		orderBy: { [sortBy] : sortOrder },
-		include: {
-            assessment:true
-		},
-	});
+  const total = await prisma.assessmentProblem.count({
+    where: { AND: andConditions },
+  });
 
-    const total = await prisma.assessmentProblem.count({
-		where: { AND: andConditions },
-	});
-
-	return {
-		data: assesmentProblem,
-		meta: {
-			page,
-			limit,
-			total,
-			totalPages: Math.ceil(total / limit),
-		},
-	};
-
-  
+  return {
+    data: assesmentProblem,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
-
 
 const deleteProblemFromAssessment = async (
   assessmentId: string,
   problemId: string,
-  user: RequestUser
+  user: RequestUser,
 ) => {
   const companyProfile = await prisma.companyProfile.findUnique({
     where: {
@@ -196,20 +167,12 @@ const deleteProblemFromAssessment = async (
   });
 
   if (!companyProfile) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Company profile not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
   }
 
   if (!companyProfile.isApproved) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "Company is not approved"
-    );
+    throw new AppError(httpStatus.FORBIDDEN, "Company is not approved");
   }
-
- 
 
   const assessment = await prisma.assessment.findUnique({
     where: {
@@ -219,23 +182,19 @@ const deleteProblemFromAssessment = async (
   });
 
   console.log("ASSESSMENT ID:", assessmentId);
-console.log("ASSESSMENT DATA:", JSON.stringify(assessment, null, 2));
+  console.log("ASSESSMENT DATA:", JSON.stringify(assessment, null, 2));
 
   if (!assessment) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Assessment not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found");
   }
 
   console.log("Assessment Company ID:", assessment.companyId);
-console.log("Logged-in Company ID:", companyProfile.id);
-
+  console.log("Logged-in Company ID:", companyProfile.id);
 
   if (assessment.status !== "DRAFT") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Only draft assessment can be modified"
+      "Only draft assessment can be modified",
     );
   }
 
@@ -251,7 +210,7 @@ console.log("Logged-in Company ID:", companyProfile.id);
   if (!existProblem) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      "Problem not found in this assessment"
+      "Problem not found in this assessment",
     );
   }
 
@@ -277,9 +236,8 @@ console.log("Logged-in Company ID:", companyProfile.id);
   return result;
 };
 
-
 export const assesmentProblems = {
-    createProblemsToAssessment,
-    getProblemsToAssessmen,
-    deleteProblemFromAssessment
-}
+  createProblemsToAssessment,
+  getProblemsToAssessmen,
+  deleteProblemFromAssessment,
+};

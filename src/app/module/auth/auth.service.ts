@@ -36,11 +36,11 @@ const createUser = async (payload: IAuthRegister) => {
   const email = payload.email.trim().toLowerCase();
 
   if (role !== Role.CANDIDATE) {
-  throw new AppError(
-    httpStatus.BAD_REQUEST,
-    "Only candidate registration is allowed",
-  );
-}
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only candidate registration is allowed",
+    );
+  }
 
   const isUserExists = await prisma.user.findUnique({
     where: { email },
@@ -53,9 +53,11 @@ const createUser = async (payload: IAuthRegister) => {
     );
   }
 
-  const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
+  const hashedPassword = await bcrypt.hash(
+    password,
+    Number(config.bcrypt_salt_rounds),
+  );
 
- 
   const otpKey = `candidate-registration-email:${email}`;
   const otpValue = crypto.randomInt(100000, 1000000).toString();
   await redisClient.set(otpKey, otpValue, {
@@ -102,8 +104,6 @@ const createUser = async (payload: IAuthRegister) => {
     html,
   });
 };
-
-
 
 const verifyUserEmail = async (payload: IVerifyEmailPayload) => {
   const { otp } = payload;
@@ -159,7 +159,7 @@ const verifyUserEmail = async (payload: IVerifyEmailPayload) => {
           skills: userPayload.candidate?.skills,
           experienceYears: userPayload.candidate?.experienceYears,
           githubUrl: userPayload.candidate?.githubUrl,
-          linkedinUrl: userPayload.candidate?.linkedinUrl
+          linkedinUrl: userPayload.candidate?.linkedinUrl,
         },
       },
     },
@@ -249,7 +249,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
   );
 
   if (!isPasswordMatched) {
-    throw new AppError(httpStatus.UNAUTHORIZED,"Invalid credentials");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid credentials");
   }
 
   const jwtPayload = {
@@ -276,7 +276,6 @@ const loginUser = async (payload: ILoginUserPayload) => {
     refreshToken,
   };
 };
-
 
 const refreshToken = async (token: string) => {
   const verifiedRefreshToken = jwtUtils.verifyToken(
@@ -327,7 +326,6 @@ const refreshToken = async (token: string) => {
     refreshToken,
   };
 };
-
 
 const googleLogin = async (payload: IGoogleLoginPayload) => {
   let googleIdTokenPayload: TokenPayload | undefined | null = null;
@@ -480,247 +478,208 @@ const getMe = async (user: IRequestUser) => {
     where: {
       id: user.userId,
     },
-    omit:{
-        password:true
-    }
+    omit: {
+      password: true,
+    },
   });
 
   if (!isUserExists) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-
-
   return isUserExists;
 };
 
-const forgotPasseord = async(payload:IForgotPasswordPayload)=>{
-	const {email} = payload;
+const forgotPasseord = async (payload: IForgotPasswordPayload) => {
+  const { email } = payload;
 
- 	const isUserExist = await prisma.user.findUnique({
-		where:{
-			email
-		}
-	})
+  const isUserExist = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
 
-	if (!isUserExist) {
-  throw new AppError(
-    httpStatus.NOT_FOUND,
-    "User does not exist!"
+  if (!isUserExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "User does not exist!");
+  }
+
+  if (isUserExist.status === UserStatus.BLOCKED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is Blocked!");
+  }
+
+  if (isUserExist.isDeleted || isUserExist.status === UserStatus.INACTIVE) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is Deleted!");
+  }
+
+  if (!isUserExist.emailVerified) {
+    throw new AppError(httpStatus.FORBIDDEN, "Your email is not verified");
+  }
+
+  if (isUserExist.googleId || isUserExist.authProvider !== "CREDENTIAL") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "User account is logged in with Google",
+    );
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const key = `forget-password-email:${isUserExist.email}`;
+  await redisClient.set(key, otp, {
+    expiration: {
+      type: "EX",
+      value: 60,
+    },
+  });
+
+  const templetePath = path.join(
+    process.cwd(),
+    "src/app/module/template/forgote_password.ejs",
   );
-}
+  const html = await ejs.renderFile(templetePath, {
+    name: isUserExist.name,
+    otp,
+    expirationTime: 60 / 60,
+  });
 
-if (isUserExist.status === UserStatus.BLOCKED) {
-  throw new AppError(
-    httpStatus.FORBIDDEN,
-    "User is Blocked!"
+  await transporter.sendMail({
+    from: config.smtp_email_sendr,
+    to: isUserExist.email,
+    subject: "Forgot Password",
+    html,
+  });
+};
+
+const resetPassword = async (payload: IResetPasswordPayload) => {
+  const { email, otp, newPassword } = payload;
+
+  const isUserExist = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!isUserExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "User does not exist!");
+  }
+
+  if (isUserExist.status === UserStatus.BLOCKED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is Blocked!");
+  }
+
+  if (isUserExist.isDeleted || isUserExist.status === UserStatus.INACTIVE) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is Deleted!");
+  }
+
+  if (!isUserExist.emailVerified) {
+    throw new AppError(httpStatus.FORBIDDEN, "Your email is not verified");
+  }
+
+  if (isUserExist.googleId || isUserExist.authProvider !== "CREDENTIAL") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "User account is registered with Google",
+    );
+  }
+
+  const key = `forget-password-email:${email}`;
+  const redisOTP = await redisClient.get(key);
+
+  if (!redisOTP) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalide OTP");
+  }
+
+  if (redisOTP !== otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, "OTP dose not match");
+  }
+
+  const hashedNewPassword = await bcrypt.hash(
+    newPassword,
+    Number(config.bcrypt_salt_rounds),
   );
-}
+  console.log({ hashedNewPassword });
+  await prisma.user.update({
+    where: {
+      email: isUserExist.email,
+    },
+    data: {
+      password: hashedNewPassword,
+    },
+  });
+  await redisClient.del([key]);
 
-if (
-  isUserExist.isDeleted ||
-  isUserExist.status === UserStatus.INACTIVE
-) {
-  throw new AppError(
-    httpStatus.FORBIDDEN,
-    "User is Deleted!"
+  const templetePath = path.join(
+    process.cwd(),
+    "/src/app/module/template/reset_password_email.ejs",
   );
-}
+  const html = await ejs.renderFile(templetePath, {
+    name: isUserExist.name,
+  });
 
-if (!isUserExist.emailVerified) {
-  throw new AppError(
-    httpStatus.FORBIDDEN,
-    "Your email is not verified"
+  await transporter.sendMail({
+    from: config.smtp_email_sendr,
+    to: isUserExist.email,
+    subject: "Password Changes",
+    html,
+  });
+};
+
+const uploadImage = async (buffer: Buffer, userId: string) => {
+  const currentUser = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      imagePublicId: true,
+      imageUrl: true,
+    },
+  });
+
+  const cloudinaryResult = await new Promise<UploadApiResponse>(
+    (resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            resource_type: "auto",
+          },
+
+          async (error, result) => {
+            if (error) {
+              console.error("CLOUDINARY ERROR DETAILS:", error);
+              return reject(error);
+            }
+
+            if (!result) {
+              return reject(new Error("No result returned from Cloudinary"));
+            }
+
+            resolve(result);
+          },
+        )
+        .end(buffer);
+    },
   );
-}
 
-if (
-  isUserExist.googleId ||
-  isUserExist.authProvider !== "CREDENTIAL"
-) {
-  throw new AppError(
-    httpStatus.BAD_REQUEST,
-    "User account is logged in with Google"
-  );
-}
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
 
-	const otp = crypto.randomInt(100000 , 1000000).toString()
-	const key = `forget-password-email:${isUserExist.email}`
-	await redisClient.set(key , otp,{
-		expiration:{
-			type:"EX",
-			value: 60
-		}
-	})
-	
-	const templetePath = path.join(process.cwd(), "src/app/module/template/forgote_password.ejs")
-	const html = await ejs.renderFile(templetePath , {
-		name: isUserExist.name,
-		otp,
-		expirationTime: 60/60
-	})
+    data: {
+      imageUrl: cloudinaryResult.secure_url,
+      imagePublicId: cloudinaryResult.public_id,
+    },
 
-	await transporter.sendMail({
-		from:config.smtp_email_sendr,
-		to:isUserExist.email,
-		subject:'Forgot Password',
-		html
-	})
-	
-}
+    omit: {
+      password: true,
+    },
+  });
 
+  if (currentUser?.imagePublicId && currentUser.imageUrl) {
+    await cloudinary.uploader.destroy(currentUser.imagePublicId);
+  }
 
-const resetPassword = async(payload:IResetPasswordPayload)=>{
-	const {email,otp,newPassword} = payload;
-
- 	const isUserExist = await prisma.user.findUnique({
-		where:{
-			email
-		}
-	})
-
-	if (!isUserExist) {
-  throw new AppError(
-    httpStatus.NOT_FOUND,
-    "User does not exist!"
-  );
-}
-
-if (isUserExist.status === UserStatus.BLOCKED) {
-  throw new AppError(
-    httpStatus.FORBIDDEN,
-    "User is Blocked!"
-  );
-}
-
-if (
-  isUserExist.isDeleted ||
-  isUserExist.status === UserStatus.INACTIVE
-) {
-  throw new AppError(
-    httpStatus.FORBIDDEN,
-    "User is Deleted!"
-  );
-}
-
-if (!isUserExist.emailVerified) {
-  throw new AppError(
-    httpStatus.FORBIDDEN,
-    "Your email is not verified"
-  );
-}
-
-if (
-  isUserExist.googleId ||
-  isUserExist.authProvider !== "CREDENTIAL"
-) {
-  throw new AppError(
-    httpStatus.BAD_REQUEST,
-    "User account is registered with Google"
-  );
-}
-
-	const key = `forget-password-email:${email}`
-	const redisOTP = await redisClient.get(key)
-
-	if (!redisOTP) {
-		throw new AppError(httpStatus.BAD_REQUEST,'Invalide OTP')
-	}
-
-	if (redisOTP !== otp) {
-		throw new AppError(httpStatus.BAD_REQUEST,'OTP dose not match')
-	}
-
-	const hashedNewPassword = await bcrypt.hash(newPassword , Number(config.bcrypt_salt_rounds))
-	console.log({hashedNewPassword})
-	await prisma.user.update({
-		where:{
-			email: isUserExist.email
-		},
-		data:{
-			password:hashedNewPassword
-		}
-	})
-	await redisClient.del([key])
-
-
-		const templetePath = path.join(process.cwd(), "/src/app/module/template/reset_password_email.ejs")
-		const html = await ejs.renderFile(templetePath , {
-		name: isUserExist.name,
-		
-	})
-
-
-	await transporter.sendMail({
-		from:config.smtp_email_sendr,
-		to:isUserExist.email,
-		subject:'Password Changes',
-		html
-	})
-}
-
-
-const uploadImage = async(buffer: Buffer, userId: string)=>{
-    const currentUser = await prisma.user.findUnique({
-	    	where: {
-		      	id: userId,
-		  },
-	    	select: {
-          imagePublicId: true,
-	      		imageUrl: true,
-    		},
-	      });
-
-
-
-    const cloudinaryResult = await new Promise<UploadApiResponse>(
-		(resolve, reject) => {
-			cloudinary.uploader
-				.upload_stream(
-					{
-						resource_type: "auto",
-					},
-
-					async (error, result) => {
-						if (error) {
-               console.error("CLOUDINARY ERROR DETAILS:", error);
-							return reject(error);
-						}
-
-						if (!result) {
-							return reject(new Error("No result returned from Cloudinary"));
-						}
-
-						resolve(result);
-					},
-				)
-				.end(buffer);
-		},
-	);
-
-	const updatedUser = await prisma.user.update({
-		where: {
-			id: userId,
-		},
-
-		data: {
-			imageUrl: cloudinaryResult.secure_url,
-			imagePublicId: cloudinaryResult.public_id,
-		},
-
-		omit: {
-			password: true,
-		},
-	});
-
-	if (currentUser?.imagePublicId && currentUser.imageUrl) {
-		await cloudinary.uploader.destroy(currentUser.imagePublicId);
-	}
-
-	return updatedUser;
-
-}
-
+  return updatedUser;
+};
 
 export const AuthService = {
   createUser,
@@ -731,5 +690,5 @@ export const AuthService = {
   forgotPasseord,
   getMe,
   resetPassword,
-  uploadImage
+  uploadImage,
 };

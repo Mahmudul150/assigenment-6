@@ -1,18 +1,20 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
-import { assesmentService } from "../assesment/assesment.service";
 import { assesmentProblems } from "./assPbm.service";
 import { sendResponse } from "../../utils/sendResponseData";
 
+const createProblemsToAssessment = catchAsync(
+  async (req: Request, res: Response) => {
+    const assessmentId = req.params.assessmentId as string;
+    const payload = req.body;
+    const user = req.user!;
 
-const createProblemsToAssessment = catchAsync( async (req: Request, res: Response) => {
-
-    const assessmentId = req.params.assessmentId as string
-    const payload = req.body
-    const user = req.user!
-
-    const result =  await assesmentProblems.createProblemsToAssessment(assessmentId , payload, user );
+    const result = await assesmentProblems.createProblemsToAssessment(
+      assessmentId,
+      payload,
+      user,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -20,16 +22,20 @@ const createProblemsToAssessment = catchAsync( async (req: Request, res: Respons
       message: "Problems added to assessment successfully",
       data: result,
     });
-  }
+  },
 );
 
+const getProblemsToAssessment = catchAsync(
+  async (req: Request, res: Response) => {
+    const query = req.query;
+    const assessmentId = req.params.assessmentId as string;
+    const user = req.user!;
 
-const getProblemsToAssessment =  catchAsync(async(req: Request, res: Response) =>{
-    const query = req.query
-    const assessmentId = req.params.assessmentId as string
-    const user = req.user!
-
-    const {data,meta} =  await assesmentProblems.getProblemsToAssessmen(query, assessmentId , user );
+    const { data, meta } = await assesmentProblems.getProblemsToAssessmen(
+      query,
+      assessmentId,
+      user,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -37,16 +43,22 @@ const getProblemsToAssessment =  catchAsync(async(req: Request, res: Response) =
       message: "Assessment problems retrieved successfully",
       data: {
         data,
-        meta
+        meta,
       },
     });
-  } )
-const deleteProblemFromAssessment =  catchAsync(async(req: Request, res: Response) =>{
-    const assessmentId = req.params.assessmentId as string
-    const problemId = req.params.problemId as string
-    const user = req.user!
+  },
+);
+const deleteProblemFromAssessment = catchAsync(
+  async (req: Request, res: Response) => {
+    const assessmentId = req.params.assessmentId as string;
+    const problemId = req.params.problemId as string;
+    const user = req.user!;
 
-    const result =  await assesmentProblems.deleteProblemFromAssessment( assessmentId,problemId , user );
+    const result = await assesmentProblems.deleteProblemFromAssessment(
+      assessmentId,
+      problemId,
+      user,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -54,11 +66,11 @@ const deleteProblemFromAssessment =  catchAsync(async(req: Request, res: Respons
       message: "Assessment problems retrieved successfully",
       data: result,
     });
-  } )
+  },
+);
 
-
-export const  AssesmentProblemController = {
-    createProblemsToAssessment,
-    getProblemsToAssessment,
-    deleteProblemFromAssessment
-}
+export const AssesmentProblemController = {
+  createProblemsToAssessment,
+  getProblemsToAssessment,
+  deleteProblemFromAssessment,
+};

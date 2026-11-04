@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
-// import { PaymentSercice } from "./payment.service";
 import { sendResponse } from "../../utils/sendResponseData";
 import httpStatus from 'http-status'
 import { PaymentService } from "./payment.service";
@@ -23,19 +22,10 @@ const createPayment = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-
-// const paymentCallback = catchAsync(async (req:Request, res:Response) => {
-//   const result = await PaymentSercice.paymentCallback(req.query);
-
-//   res.redirect(result.redirectUrl);
-// });
-
-
 const paymentCallback = catchAsync(
   async (req: Request, res: Response) => {
     const result = await PaymentService.paymentCallback(req.query);
 
-    // Frontend-এ redirect করবে
     if (result.redirectUrl) {
       return res.redirect(result.redirectUrl);
     }
