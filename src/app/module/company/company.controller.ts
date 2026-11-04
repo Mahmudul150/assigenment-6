@@ -66,7 +66,7 @@ const allCompanyget = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Company updated her profile  Successfully",
+		message: "Admin All Company Successfully",
 		data: {
             data,
             meta

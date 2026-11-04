@@ -1,6 +1,6 @@
 import app from "./app";
 import config from "./app/config";
-import { deleteUnverifiedCompany } from "./app/lib/cron-job";
+import { deleteUnverifiedCompany, expireAttempt } from "./app/lib/cron-job";
 import { transporter } from "./app/lib/nodemailer";
 import { prisma } from "./app/lib/prisma";
 import { redisClient } from "./app/lib/redis";
@@ -21,6 +21,7 @@ const root  = async() =>{
         console.log("Connected to the database successfully.");
 
         await deleteUnverifiedCompany()
+        await expireAttempt()
          await seedAdmin()
 
         app.listen(PORT, () => {

@@ -29,25 +29,18 @@ import { googleClientId } from "../../lib/googleAuth";
 import { TokenPayload } from "google-auth-library";
 import { UploadApiResponse } from "cloudinary";
 import { cloudinary } from "../../lib/cloudinary";
-// import { cloudinary } from "../../lib/cloudinary";
 
 const createUser = async (payload: IAuthRegister) => {
-  const { name, password, role, candidate } = payload;
+  const { name, password, candidate } = payload;
+  const role = payload.role ?? Role.CANDIDATE;
   const email = payload.email.trim().toLowerCase();
 
-  if (role === Role.ADMIN) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "Admin registration is not allowed",
-    );
-  }
-
-  if (role !== Role.CANDIDATE && role !== Role.COMPANY) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Role must be CANDIDATE or COMPANY",
-    );
-  }
+  if (role !== Role.CANDIDATE) {
+  throw new AppError(
+    httpStatus.BAD_REQUEST,
+    "Only candidate registration is allowed",
+  );
+}
 
   const isUserExists = await prisma.user.findUnique({
     where: { email },
@@ -55,7 +48,7 @@ const createUser = async (payload: IAuthRegister) => {
 
   if (isUserExists) {
     throw new AppError(
-      httpStatus.NOT_FOUND,
+      httpStatus.CONFLICT,
       "User with this email already exists",
     );
   }
@@ -63,7 +56,6 @@ const createUser = async (payload: IAuthRegister) => {
   const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
 
  
-  // radise a data temporary store for otp and send it to email
   const otpKey = `candidate-registration-email:${email}`;
   const otpValue = crypto.randomInt(100000, 1000000).toString();
   await redisClient.set(otpKey, otpValue, {
@@ -167,8 +159,7 @@ const verifyUserEmail = async (payload: IVerifyEmailPayload) => {
           skills: userPayload.candidate?.skills,
           experienceYears: userPayload.candidate?.experienceYears,
           githubUrl: userPayload.candidate?.githubUrl,
-          linkedinUrl: userPayload.candidate?.linkedinUrl,
-          resumeUrl: userPayload.candidate?.resumeUrl,
+          linkedinUrl: userPayload.candidate?.linkedinUrl
         },
       },
     },
@@ -234,15 +225,15 @@ const loginUser = async (payload: ILoginUserPayload) => {
   });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not found");
   }
 
   if (user.status === UserStatus.BLOCKED) {
-    throw new AppError(httpStatus.NOT_FOUND, "User is blocked");
+    throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
   }
 
   if (user.isDeleted || user.status === UserStatus.INACTIVE) {
-    throw new AppError(httpStatus.NOT_FOUND, "User is deleted");
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted");
   }
 
   if (user.password === null && user.googleId !== null) {
@@ -258,7 +249,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
   );
 
   if (!isPasswordMatched) {
-    throw new Error("Invalid credentials");
+    throw new AppError(httpStatus.UNAUTHORIZED,"Invalid credentials");
   }
 
   const jwtPayload = {
@@ -424,7 +415,6 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
           candidate: {
             create: {
               name: googleIdTokenPayload.name,
-              // email: googleIdTokenPayload.email,
             },
           },
         },
@@ -442,7 +432,7 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
       await transporter.sendMail({
         from: config.smtp_email_sendr,
         to: user.email,
-        subject: "Wellcome to Ph-Helathcare Platfrom",
+        subject: "Wellcome Developer assessment platform",
         html,
       });
     }
@@ -634,11 +624,11 @@ if (
 	const redisOTP = await redisClient.get(key)
 
 	if (!redisOTP) {
-		throw new Error('Invalide OTP')
+		throw new AppError(httpStatus.BAD_REQUEST,'Invalide OTP')
 	}
 
 	if (redisOTP !== otp) {
-		throw new Error('OTP dose not match')
+		throw new AppError(httpStatus.BAD_REQUEST,'OTP dose not match')
 	}
 
 	const hashedNewPassword = await bcrypt.hash(newPassword , Number(config.bcrypt_salt_rounds))

@@ -64,7 +64,7 @@ export const updateAssessmentValidation = z.object({
     .optional(),
 
   status: z
-    .enum(["DRAFT", "CANCELLED"])
+    .enum(["DRAFT", ])
     .optional(),
 
   startsAt: z

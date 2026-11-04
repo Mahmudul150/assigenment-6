@@ -5,6 +5,7 @@ import { ICandidateProfileUpdated, IRequestUser } from "./candidate.interface";
 import httpStatus from 'http-status'
 import { RequestUser } from "../../middleware/auth";
 import { Role, UserStatus } from "../../../../generated/prisma/enums";
+import { AuditLogService } from "../auditlogs/auditLog.service";
 
 const getCandidateProfile = async (user: IRequestUser) => {
   const isCandidateExists = await prisma.candidateProfile.findUnique({
@@ -69,7 +70,18 @@ const updatedProfile = async(payload:ICandidateProfileUpdated , user:RequestUser
     }
   })
 
-  return updateProfile 
+  await AuditLogService.createAuditLog({
+    userId: user.userId,
+    action: "UPDATE",
+    entityType: "CandidateProfile",
+    entityId: updateProfile.id,
+    metadata: {
+      ...payload
+    }
+  });
+
+
+  return updateProfile;
 }
 
 

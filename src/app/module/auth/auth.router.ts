@@ -5,20 +5,19 @@ import { Role } from "../../../../generated/prisma/enums";
 import { zodValidate } from "../../middleware/zodValidation";
 import { authLoginSchema, UserValidaton } from "./auth.validation";
 import { upload } from "../../lib/multer";
+import { loginLimiter } from "../../lib/retLimitar";
 
 const route  = Router()
 
 route.post('/register', zodValidate(UserValidaton.authRegisterSchema), AuthController.createUser)
 route.post('/email-verify',AuthController.verifyUserEmail)
-route.post('/login', zodValidate(authLoginSchema) ,AuthController.loginUser)
+route.post('/login', loginLimiter, zodValidate(authLoginSchema) ,AuthController.loginUser)
 
 route.post("/refresh-token", AuthController.refreshToken);
 route.post("/google", AuthController.googleLogin);
 route.get("/me",auth(Role.ADMIN, Role.CANDIDATE, Role.COMPANY),AuthController.getMe,
 );
-route.post("/forgot-password",
-	zodValidate(UserValidaton.ForgotPasswordZodSchema),
-	AuthController.forgotPasseord);
+route.post("/forgot-password", zodValidate(UserValidaton.ForgotPasswordZodSchema),AuthController.forgotPasseord);
 
 
 route.post("/reset-password",

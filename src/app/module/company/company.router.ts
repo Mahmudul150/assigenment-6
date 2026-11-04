@@ -9,7 +9,7 @@ const router = Router()
 
 router.post('/create',zodValidate(companyValidateSchema.createCompanyProfileSchema) ,companyCnontroller.createCompany)
 router.post('/email-verified',companyCnontroller.verifyCompanyEmail)
-router.patch('/approve',auth(Role.ADMIN),companyCnontroller.isApproved)
+router.patch('/approve',auth(Role.ADMIN),zodValidate(companyValidateSchema.isApprovedValidationSchema),companyCnontroller.isApproved)
 router.get('/get-allCompnay',auth(Role.ADMIN) , companyCnontroller.allCompanyget)
 router.patch('/update-profile',auth(Role.COMPANY),zodValidate(companyValidateSchema.updateCompanyProfileSchema) , companyCnontroller.updatedProfile)
 

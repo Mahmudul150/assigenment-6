@@ -12,7 +12,6 @@ model Invitation {
   candidate  CandidateProfile? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
   attempt    Attempt?
 
-  
   @@unique([assessmentId, email])
   @@map("invitations")
 }

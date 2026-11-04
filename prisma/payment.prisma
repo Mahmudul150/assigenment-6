@@ -1,19 +1,20 @@
 model Payment {
-  id            String        @id @default(uuid())
-  companyId     String
-  assessmentId  String
-  amount        Float
-  currency      String        @default("BDT")
-  method        String        // bKash, SSLCommerz, etc.
-  status        PaymentStatus @default(PENDING)
-  merchantInvoiceNumber String        @unique 
-  bkashPaymentId String?
-  bkashTrxId    String?
-  failureReason String?
-  getWayResponse Json?
-  paidAt        DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                    String        @id @default(uuid())
+  companyId             String
+  assessmentId          String
+  amount                Float
+  currency              String        @default("BDT")
+  method                String // bKash, SSLCommerz, etc.
+  status                PaymentStatus @default(PENDING)
+  merchantInvoiceNumber String        @unique
+  bkashPaymentId        String?
+  bkashTrxId            String?
+  payerReference        String?
+  failureReason         String?
+  getWayResponse        Json?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   // Relations
   company    CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)

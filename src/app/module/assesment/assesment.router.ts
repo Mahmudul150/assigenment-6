@@ -13,6 +13,17 @@ router.get('/all-assesment', auth(Role.ADMIN) , assesmentController.getAllAssesm
 router.get('/my-assesment', auth(Role.COMPANY) , assesmentController.getMYAssesment)
 
 router.patch(
+  "/publish/:assesmentId",
+  auth(Role.COMPANY),
+  assesmentController.assesmentPublished
+);
+
+router.get(
+  "/all-published-assesment",
+  assesmentController.getAllPublishedAssessments
+);
+
+router.patch(
   "/:assessmentId",
   zodValidate(assessmentSchema.updateAssessmentValidation),
   auth(Role.COMPANY),

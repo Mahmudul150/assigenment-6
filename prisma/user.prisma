@@ -4,7 +4,7 @@ model User {
   email              String            @unique
   password           String?
   googleId           String?           @unique
-  role               Role             
+  role Role @default(CANDIDATE)
   status             UserStatus        @default(ACTIVE)
   authProvider       AuthProvider      @default(CREDENTIAL)
   emailVerified      Boolean           @default(false)
@@ -17,6 +17,7 @@ model User {
   deletedAt          DateTime?
   candidate          CandidateProfile?
   company            CompanyProfile?
-  auditLogs            AuditLog[]
+  auditLogs          AuditLog[]
+
   @@map("user")
 }

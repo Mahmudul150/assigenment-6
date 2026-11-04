@@ -1,10 +1,17 @@
 import { catchAsync } from "../../utils/catchAsync"
 import { sendResponse } from "../../utils/sendResponseData";
-import type { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import httpStatus from "http-status";
 import { IRequestUser } from "./auth.interface";
 import { AppError } from "../../middleware/appError";
+import config from "../../config";
+
+const getCookieOptions = (): CookieOptions => ({
+  httpOnly: true,
+  secure: config.node_env === "production",
+  sameSite: config.node_env === "production" ? "none" : "lax",
+});
 
 const createUser = catchAsync(async(req: Request, res: Response)=>{
     const payload = req.body;
@@ -27,17 +34,14 @@ const verifyUserEmail = catchAsync(async  (req: Request, res: Response)=>{
 	const { accessToken, refreshToken, user, candidate } = result;
 
 	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
-	});
+  		...getCookieOptions(),
+ 		 maxAge: 1000 * 60 * 60 * 24,
+		});
+
 	res.cookie("refreshToken", refreshToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-	});
+ 		 ...getCookieOptions(),
+ 		 maxAge: 1000 * 60 * 60 * 24 * 7,
+		});
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
@@ -59,17 +63,14 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 	const { accessToken, refreshToken } = result;
 
 	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
-	});
+  		...getCookieOptions(),
+  			maxAge: 1000 * 60 * 60 * 24,
+		});
+
 	res.cookie("refreshToken", refreshToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-	});
+ 		 ...getCookieOptions(),
+  			maxAge: 1000 * 60 * 60 * 24 * 7,
+		});
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -87,23 +88,20 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
 	if (!req.cookies.refreshToken) {
-		throw new Error("Refresh token is missing");
+		throw new AppError(httpStatus.UNAUTHORIZED,"Refresh token is missing");
 	}
 	const result = await AuthService.refreshToken(req.cookies.refreshToken);
 	const { accessToken, refreshToken: newRefreshToken } = result;
 
-	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
-	});
-	res.cookie("refreshToken", newRefreshToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-	});
+		res.cookie("accessToken", accessToken, {
+ 		 ...getCookieOptions(),
+ 			 maxAge: 1000 * 60 * 60 * 24,
+			});
+
+		res.cookie("refreshToken", newRefreshToken, {
+ 		 ...getCookieOptions(),
+ 			 maxAge: 1000 * 60 * 60 * 24 * 7,
+			});
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -124,17 +122,14 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
 	const { accessToken, refreshToken } = result;
 
 	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
-	});
+ 			 ...getCookieOptions(),
+  			maxAge: 1000 * 60 * 60 * 24,
+		});
+
 	res.cookie("refreshToken", refreshToken, {
-		httpOnly: true,
-		secure: false,
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-	});
+		  ...getCookieOptions(),
+ 		 maxAge: 1000 * 60 * 60 * 24 * 7,
+		});
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -150,7 +145,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
 
 	if (!user) {
-		throw new Error("User information is missing in the request");
+		throw new AppError(httpStatus.UNAUTHORIZED,"User information is missing in the request");
 	}
 
 	const result = await AuthService.getMe(user);
@@ -187,17 +182,17 @@ const resetPassword = catchAsync( async(req: Request, res: Response)=>{
 	});
 })
 
-const logout = catchAsync(async(req:Request,res:Response)=>{
-	
-	res.clearCookie("accessToken");
-	res.clearCookie("refreshToken");
-		sendResponse(res, {
-		statusCode: httpStatus.OK,
-		success: true,
-		message: "User logged out successfully",
-		data:null
-	});
-})
+const logout = catchAsync(async (req: Request, res: Response) => {
+  res.clearCookie("accessToken", getCookieOptions());
+  res.clearCookie("refreshToken", getCookieOptions());
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User logged out successfully",
+    data: null,
+  });
+});
 
 
 

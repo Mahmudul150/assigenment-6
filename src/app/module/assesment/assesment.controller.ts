@@ -50,6 +50,43 @@ const getMYAssesment = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const assesmentPublished = catchAsync(async (req: Request, res: Response) => {
+
+	const user = req.user!;
+	const assesmentId = req.params.assesmentId as string;
+    const result = await assesmentService.assesmentPublished(
+		  assesmentId,
+      user,
+	
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Assessment published successfully",
+      data: result,
+    });
+  })
+
+
+
+const getAllPublishedAssessments = catchAsync(
+  async (req: Request, res: Response) => {
+    const query = req.query;
+
+    const result =
+      await assesmentService.getAllPublishedAssessments(query);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Published assessments retrieved successfully",
+      data: result,
+    });
+  }
+);
+
+
 const updateAssesment = catchAsync(async (req: Request, res: Response) => {
 	
 	const user = req.user!
@@ -86,6 +123,7 @@ export const assesmentController = {
     getAllAssesment,
     getMYAssesment,
 	updateAssesment,
-	deleteAssesment
-    
+	deleteAssesment,
+    assesmentPublished,
+	getAllPublishedAssessments
 }

@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Assessment Invitation</title>
+</head>
+
+<body>
+  <h2>Assessment Invitation</h2>
+
+  <p>Hello,</p>
+
+  <p>
+    You have been invited by
+    <strong><%= companyName %></strong>
+    to participate in an assessment.
+  </p>
+
+  <h3>Assessment Details</h3>
+
+  <p>
+    <strong>Assessment:</strong>
+    <%= assessmentTitle %>
+  </p>
+
+  <p>
+    <strong>Duration:</strong>
+    <%= durationMinutes %> minutes
+  </p>
+
+  <p>
+    <strong>Passing Score:</strong>
+    <%= passingScore %>
+  </p>
+
+  <p>
+    <strong>Invitation Expires:</strong>
+    <%= expirationDate %>
+  </p>
+
+  <p>
+    Click the button below to view your invitation:
+  </p>
+
+  <a
+    href="<%= invitationLink %>"
+    style="
+      display: inline-block;
+      padding: 12px 20px;
+      background-color: #2563eb;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    "
+  >
+    View Invitation
+  </a>
+
+  <p>
+    Please note that this invitation link will expire after 7 days.
+  </p>
+
+  <p>Best regards,<br />Assessment Platform Team</p>
+</body>
+</html>

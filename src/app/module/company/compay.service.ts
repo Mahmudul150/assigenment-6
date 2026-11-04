@@ -14,96 +14,7 @@ import { RequestUser } from "../../middleware/auth";
 import { IApproveCompany, IcreateCompanyProfile, IUpdateCompanyProfile, IVerifyCompanyEmailPayload } from "./company.interface";
 import { IQuery } from "../../quaryInterface";
 import { CompanyProfileWhereInput } from "../../../../generated/prisma/models";
-
-
-
-// const createAsACompany = async(payload:IcreateCompanyProfile)=>{
-//     const {password}= payload.user
-//     const hashedPassword = await bcrypt.hash(password, 8);
-
-//   const email = payload.user.email.trim().toLowerCase();  
-
-//   const isExistCompany = await prisma.user.findUnique({
-//         where:{
-//             email:email
-//         }
-//     })
-
-//       if (isExistCompany) {
-//          throw new AppError(
-//        httpStatus.CONFLICT,
-//       "User Already Exists With This Email",
-//     );
-//   }
-
-//   const createCompany = await prisma.user.create({
-//     data:{
-//         ...payload.user,
-//         role: Role.COMPANY,
-//       needPasswordChange: true,
-//       password:hashedPassword,
-//       company:{
-//         create: {
-//           name: payload.company.name,
-//           website: payload.company.website,
-//           industry: payload.company.industry,
-//           description: payload.company.description,
-//           logoUrl: payload.company.logoUrl,
-//         },
-//       }
-//       },
-//       omit:{
-//         password:true
-//       },
-//       include:{
-//         company:true
-//       }
-//   })
-
-
-//   const expirationSeconds = 60 * 60;
-
-//   const otpKey = `company-otp:${payload.user.email}`;
-//   const otpValue = crypto.randomInt(100000, 1000000).toString();
-
-//   if (config.node_env === "development")
-//     console.log(
-//       `[dev] Compnay  OTP for ${payload.user.email}: ${otpValue}`,
-//     );
-
-//   await redisClient.set(otpKey, otpValue, {
-//     expiration: {
-//       type: "EX",
-//       value: expirationSeconds,
-//     },
-//   });
-
-//   const tempatePath = path.join(
-//     process.cwd(),
-//     "/src/app/module/template/registation_email_verification.ejs",
-//   );
-
-//   const templateData = {
-//     name: payload.user.name,
-//     email: payload.user.email,
-//     otp: otpValue,
-//     expirationMinutes: expirationSeconds / 60,
-//   };
-
-//   const html = await ejs.renderFile(tempatePath, templateData);
-
-//   await transporter.sendMail({
-//     from: config.smtp_email_sendr,
-//     to: payload.user.email,
-//     subject: "Company - Email Verification",
-//     html,
-//   });
-
-//   return createCompany;
-
-
-// }
-
+import { AuditLogService } from "../auditlogs/auditLog.service";
 
 
 const createAsACompany = async (payload: IcreateCompanyProfile) => {
@@ -152,6 +63,19 @@ const createAsACompany = async (payload: IcreateCompanyProfile) => {
     },
   });
 
+    if (createCompany.company) {
+  await AuditLogService.createAuditLog({
+    userId: createCompany.id,
+    action: "CREATE",
+    entityType: "Company",
+    entityId: createCompany.company.id,
+    metadata: {
+      title: createCompany.company.name,
+      type: createCompany.company.industry,
+    },
+  });
+}
+
   const expirationSeconds = 60 * 60;
   const otpKey = `company-otp:${emaiL}`;
   const otpValue = crypto.randomInt(100000, 1000000).toString();
@@ -188,8 +112,6 @@ const createAsACompany = async (payload: IcreateCompanyProfile) => {
 
   return createCompany;
 };
-
-
 
 
 const verifyCompanyEmail = async (payload: IVerifyCompanyEmailPayload) => {
@@ -239,11 +161,11 @@ const verifyCompanyEmail = async (payload: IVerifyCompanyEmailPayload) => {
 };
 
 const isApproved = async(payload:IApproveCompany, Admin:RequestUser)=>{
-    const {companyId ,isApproved} = payload
+    // const {companyId } = payload
 
     const existCompany = await prisma.companyProfile.findUnique({
         where:{
-            id:companyId
+            id:payload.companyId
         },
         include:{
             user:true
@@ -269,7 +191,7 @@ const isApproved = async(payload:IApproveCompany, Admin:RequestUser)=>{
 
   const approvedCompany = await prisma.companyProfile.update({
         where:{
-            id:companyId
+            id:existCompany.id
         },
         data:{
             isApproved: true
@@ -283,6 +205,17 @@ const isApproved = async(payload:IApproveCompany, Admin:RequestUser)=>{
             }
         },
   })
+
+  await AuditLogService.createAuditLog({
+    userId: Admin.userId,
+    action: "APPROVE",
+    entityType: "Company",
+    entityId: approvedCompany.id,
+    metadata: {
+      title: approvedCompany.name,
+      type: approvedCompany.industry,
+    },
+  });
 
   return approvedCompany
 
@@ -396,6 +329,18 @@ const updateCompanyProfile  = async(payload:IUpdateCompanyProfile ,user:RequestU
         },
         data:payload
     })
+
+
+    await AuditLogService.createAuditLog({
+    userId: user.userId,
+    action: "UPDATE",
+    entityType: "Company",
+    entityId: updatedCompnayProfile.id,
+    metadata: {
+      ...payload
+    },
+  });
+
 
     return updatedCompnayProfile
 

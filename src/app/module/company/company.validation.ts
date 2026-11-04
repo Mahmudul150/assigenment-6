@@ -44,6 +44,12 @@ export const createCompanyProfileSchema = z.object({
 });
 
 
+const isApprovedValidationSchema = z.object({
+   companyId: z.string("Company ID is required"),
+});
+
+
+
 export const updateCompanyProfileSchema = z.object({
   name: z
     .string()
@@ -70,5 +76,6 @@ export const updateCompanyProfileSchema = z.object({
 
 export const companyValidateSchema = {
     createCompanyProfileSchema,
-    updateCompanyProfileSchema
+    updateCompanyProfileSchema,
+    isApprovedValidationSchema
 }

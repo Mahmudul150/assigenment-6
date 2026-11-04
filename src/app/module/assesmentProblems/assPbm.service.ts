@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middleware/appError";
 import { RequestUser } from "../../middleware/auth";
 import { IQuery } from "../../quaryInterface";
+import { AuditLogService } from "../auditlogs/auditLog.service";
 import { IAddProblemsToAssessment } from "./assPbm.interface";
 import httpStatus from "http-status";
 
@@ -57,6 +58,7 @@ const createProblemsToAssessment = async (
         in: problemIds,
       },
       companyId: company.id,
+       deletedAt: null,
     },
   });
 
@@ -89,6 +91,19 @@ const createProblemsToAssessment = async (
       problemId: item.problemId,
       order: item.order,
     })),
+  });
+
+  await AuditLogService.createAuditLog({
+    userId: user.userId,
+    action: "CREATE",
+    entityType: "AssessmentProblem",
+    entityId: assessmentId,
+    metadata: {
+      problems: payload.problems.map((item) => ({
+        problemId: item.problemId,
+        order: item.order,
+      })),
+    },
   });
 
   return result;
@@ -133,7 +148,7 @@ const getProblemsToAssessmen = async (
            const page = query.page ? Number(query.page) : 1;
            const skip = (page - 1) * limit;
            const sortBy = query.sortBy ? query.sortBy : "order";
-           const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+           const sortOrder = query.sortOrder ? query.sortOrder : "asc";
       
            const andConditions: AssessmentProblemWhereInput[] = [
             {assessmentId}
@@ -246,6 +261,16 @@ console.log("Logged-in Company ID:", companyProfile.id);
         assessmentId,
         problemId,
       },
+    },
+  });
+
+  await AuditLogService.createAuditLog({
+    userId: user.userId,
+    action: "DELETE",
+    entityType: "AssessmentProblem",
+    entityId: problemId,
+    metadata: {
+      assessmentId,
     },
   });
 

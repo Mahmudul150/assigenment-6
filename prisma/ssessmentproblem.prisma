@@ -8,6 +8,5 @@ model AssessmentProblem {
 
   @@id([assessmentId, problemId])
   @@unique([assessmentId, order])
-
   @@map("assessment_problems")
 }

@@ -6,14 +6,14 @@ model Problem {
   type          ProblemType
   difficulty    Difficulty
   points        Int         @default(0)
-  options       Json?       // MCQ options-এর জন্য
-  correctAnswer String?     // API Response-এ Candidate-কে সরাসরি পাঠাবেন না
-  testCases     Json?       // Hidden test cases (Coding problem-এর জন্য)
+  options       Json? // MCQ options-এর জন্য
+  correctAnswer String? // API Response-এ Candidate-কে সরাসরি পাঠাবেন না
+  testCases     Json? // Hidden test cases (Coding problem-এর জন্য)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
 
-  company CompanyProfile @relation(fields: [companyId],references: [id] ,onDelete: Cascade , onUpdate: Cascade)
+  company     CompanyProfile      @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   assessments AssessmentProblem[]
   submissions Submission[]
 

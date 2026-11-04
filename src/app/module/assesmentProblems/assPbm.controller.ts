@@ -29,13 +29,16 @@ const getProblemsToAssessment =  catchAsync(async(req: Request, res: Response) =
     const assessmentId = req.params.assessmentId as string
     const user = req.user!
 
-    const result =  await assesmentProblems.getProblemsToAssessmen(query, assessmentId , user );
+    const {data,meta} =  await assesmentProblems.getProblemsToAssessmen(query, assessmentId , user );
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
       success: true,
       message: "Assessment problems retrieved successfully",
-      data: result,
+      data: {
+        data,
+        meta
+      },
     });
   } )
 const deleteProblemFromAssessment =  catchAsync(async(req: Request, res: Response) =>{

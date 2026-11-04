@@ -50,8 +50,9 @@ const getMyProblems = catchAsync(async (req: Request, res: Response) => {
 
 const getProblemById = catchAsync(
   async (req: Request, res: Response) => {
-const id = req.params.problemid as string;
-    const result = await problemService.getProblemById(id);
+  const problemId = req.params.problemId as string;
+  const user = req.user!;
+    const result = await problemService.getProblemById(problemId, user);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

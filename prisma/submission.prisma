@@ -2,7 +2,7 @@ model Submission {
   id            String           @id @default(uuid())
   attemptId     String
   problemId     String
-  answer        Json?            
+  answer        Json?
   status        SubmissionStatus @default(DRAFT)
   score         Int?             @default(0)
   feedback      String?          @db.Text
@@ -11,8 +11,8 @@ model Submission {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  attempt     Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  problem     Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, problemId])
   @@map("submissions")
