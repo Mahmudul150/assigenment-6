@@ -341,7 +341,7 @@ const getProblemById = async (
   user: RequestUser
 ) => {
 
-  const problem = await prisma.problem.findFirst({
+  const problem = await prisma.problem.findUnique({
     where: {
       id: problemId,
       deletedAt: null,
