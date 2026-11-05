@@ -11,6 +11,7 @@ import { AppError } from "../../middleware/appError";
 import { RequestUser } from "../../middleware/auth";
 import httpStatus from "http-status";
 import { AuditLogService } from "../auditlogs/auditLog.service";
+import { IQuery } from "../../quaryInterface";
 
 const ASSESSMENT_FEE = Number(config.admin_fee);
 
@@ -633,14 +634,13 @@ const getMyPayments = async (user: RequestUser) => {
   return payments;
 };
 
-const getAllPayments = async (query: any) => {
-  const limit = Math.min(
-    Math.max(Number(query.limit) || 10, 1),
-    100,
-  );
-
-  const page = Math.max(Number(query.page) || 1, 1);
+const getAllPayments = async (query: IQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
+
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
   const andConditions: PaymentWhereInput[] = [];
 
@@ -694,12 +694,11 @@ const getAllPayments = async (query: any) => {
     "paidAt",
   ];
 
-  const sortBy =
-    query.sortBy && allowedSortFields.includes(query.sortBy)
-      ? query.sortBy
-      : "createdAt";
+  const finalSortBy = allowedSortFields.includes(sortBy)
+    ? sortBy
+    : "createdAt";
 
-  const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+  const finalSortOrder = sortOrder === "asc" ? "asc" : "desc";
 
   const payment = await prisma.payment.findMany({
     where: {
@@ -708,13 +707,13 @@ const getAllPayments = async (query: any) => {
     take: limit,
     skip,
     orderBy: {
-      [sortBy]: sortOrder,
+      [finalSortBy]: finalSortOrder,
     },
     include: {
       company: {
         select: {
           id: true,
-          companyName: true,
+          name: true,
         },
       },
       assessment: {
