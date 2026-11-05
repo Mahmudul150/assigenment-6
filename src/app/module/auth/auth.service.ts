@@ -249,7 +249,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
   );
 
   if (!isPasswordMatched) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Password is incorrect");
   }
 
   const jwtPayload = {
