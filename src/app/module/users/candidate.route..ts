@@ -3,7 +3,6 @@ import { Role } from "../../../../generated/prisma/enums";
 import { auth } from "../../middleware/auth";
 import { CandidateProfileController } from "./candidate.controller";
 import { zodValidate } from "../../middleware/zodValidation";
-import { candidateProfileService } from "./candidate.service";
 import { CandidateProfileValidation } from "./candidate.validation";
 
 const route = Router()

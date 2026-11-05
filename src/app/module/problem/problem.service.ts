@@ -160,14 +160,13 @@ const getALlProblem = async (query: IQuery) => {
     });
   }
 
-  // Filter by Company ID
   if (query.companyId) {
     andConditions.push({
       companyId: query.companyId,
     });
   }
 
-  // Filter by Points
+
   if (query.points) {
     andConditions.push({
       points: Number(query.points),

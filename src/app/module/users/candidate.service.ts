@@ -35,9 +35,7 @@ const getCandidateProfile = async (user: IRequestUser) => {
   return isCandidateExists;
 };
 
-const imageUpload = async()=>{
-  
-}
+
 
 const updatedProfile = async(payload:ICandidateProfileUpdated , user:RequestUser)=>{
   const existCandidate = await prisma.user.findUnique({
