@@ -248,13 +248,12 @@ const paymentCreate = async (
       paymentUrl: bkashResult.bkashURL,
     };
   } catch (error) {
-    // AppError হলে আগের error-টাই পাঠাব
+ 
     if (error instanceof AppError) {
       throw error;
     }
 
-    // Network error হলে FAILED করব না।
-    // কারণ bKash-এ payment তৈরি হয়ে থাকতে পারে।
+  
     await prisma.payment.update({
       where: {
         id: payment.id,
@@ -316,7 +315,7 @@ const paymentCallback = async (
     };
   }
 
-  // SUCCESS PAYMENT
+
   if (status === "success") {
     const bkashIdToken = await getBkashIdToken();
 
@@ -358,7 +357,7 @@ const paymentCallback = async (
       );
     }
 
-    // bKash response-এর payment information মিলিয়ে দেখা
+    
     if (
       result.paymentID !== paymentId ||
       result.merchantInvoiceNumber !==
@@ -416,7 +415,7 @@ const paymentCallback = async (
       };
     });
 
-    // শুধু payment নতুন করে PAID হলে Audit Log হবে
+   
     if (updated.isUpdated) {
       await AuditLogService.createAuditLog({
         userId: payment.company.userId,
@@ -439,7 +438,7 @@ const paymentCallback = async (
     };
   }
 
-  // FAILURE অথবা CANCEL CALLBACK
+
   else if (status === "failure" || status === "cancel") {
     const bkashIdToken = await getBkashIdToken();
 
@@ -450,7 +449,7 @@ const paymentCallback = async (
       );
     }
 
-    // Callback-এর status সরাসরি বিশ্বাস না করে bKash থেকে যাচাই
+   
     const response = await fetch(
       `${config.bkash_sendbase_url}/tokenized/checkout/payment/status`,
       {
@@ -480,7 +479,7 @@ const paymentCallback = async (
       );
     }
 
-    // Callback failure/cancel হলেও bKash-এ Completed হতে পারে
+
     if (
       result.transactionStatus === "Completed" &&
       result.trxID
@@ -536,7 +535,7 @@ const paymentCallback = async (
       };
     }
 
-    // bKash নিশ্চিতভাবে Failed/Cancelled বললেই status update
+ 
     if (
       result.transactionStatus === "Failed" ||
       result.transactionStatus === "Cancelled" ||
@@ -585,7 +584,7 @@ const paymentCallback = async (
       };
     }
 
-    // Pending বা unknown status হলে payment PENDING থাকবে
+  
     return {
       redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=pending`,
     };

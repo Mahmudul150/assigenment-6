@@ -139,37 +139,3 @@ export const getBkashIdToken = async (): Promise<string> => {
 };
 
 
-
-const bkashPost = async (path: string, body: object) => {
-  const idToken = await getBkashIdToken();
-
-  if (!idToken) {
-    throw new Error("Unable to get bKash access token.");
-  }
-
-  const response = await fetch(
-    `${config.bkash_sendbase_url}${path}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: idToken,
-        "X-App-Key": config.bkash_app_key,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30_000),
-    }
-  );
-
-  return response.json();
-};
-
-export const bkashCreate = (body: object) =>
-  bkashPost("/tokenized/checkout/create", body);
-
-export const bkashExecute = (paymentID: string) =>
-  bkashPost("/tokenized/checkout/execute", { paymentID });
-
-export const bkashQuery = (paymentID: string) =>
-  bkashPost("/tokenized/checkout/payment/status", { paymentID });
