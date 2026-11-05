@@ -11,10 +11,5 @@ router.get(
   AuditLogController.getAllAuditLogs
 );
 
-router.get(
-  "/:id",
-  auth(Role.ADMIN),
-  AuditLogController.getSingleAuditLog
-);
 
 export const AuditLogRoutes = router;

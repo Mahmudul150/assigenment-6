@@ -28,20 +28,9 @@ const getAllAuditLogs = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getSingleAuditLog = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
 
-  const result = await AuditLogService.getSingleAuditLog(id as string);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Audit log retrieved successfully",
-    data: result,
-  });
-});
 
 export const AuditLogController = {
   getAllAuditLogs,
-  getSingleAuditLog,
+
 };

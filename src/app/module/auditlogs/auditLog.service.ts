@@ -1,9 +1,6 @@
-import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
-import { AppError } from "../../middleware/appError";
 import { IAuditLogFilters, ICreateAuditLog } from "./auditLog.interface";
 import { Prisma } from "../../../../generated/prisma/client";
-
 
 const createAuditLog = async (payload: ICreateAuditLog) => {
   const result = await prisma.auditLog.create({
@@ -79,35 +76,7 @@ const getAuditLogs = async (filters: IAuditLogFilters) => {
   };
 };
 
-const getSingleAuditLog = async (id: string) => {
-  const result = await prisma.auditLog.findUnique({
-    where: {
-      id,
-    },
-    include: {
-      actor: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
-      },
-    },
-  });
-
-  if (!result) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Audit log not found"
-    );
-  }
-
-  return result;
-};
-
 export const AuditLogService = {
   createAuditLog,
-getAuditLogs,
-  getSingleAuditLog,
+  getAuditLogs,
 };
