@@ -27,7 +27,7 @@ const paymentCreate = async (
     );
   }
 
-  // Database কাজগুলো transaction-এর মধ্যে
+ 
   const transactionResult = await prisma.$transaction(async (tx) => {
     const company = await tx.companyProfile.findUnique({
       where: {
@@ -139,7 +139,7 @@ const paymentCreate = async (
 
   const { payment, company, assessment } = transactionResult;
 
-  // bKash API call transaction-এর বাইরে
+  
   try {
     const bkashIdToken = await getBkashIdToken();
 
@@ -175,7 +175,7 @@ const paymentCreate = async (
 
     const bkashResult = await bkashPaymentResponse.json();
 
-    // bKash সরাসরি request reject করলে FAILED হবে
+   
     if (
       !bkashPaymentResponse.ok ||
       bkashResult.statusCode !== "0000"
@@ -199,7 +199,7 @@ const paymentCreate = async (
     }
 
     if (!bkashResult.paymentID || !bkashResult.bkashURL) {
-      // Response অসম্পূর্ণ হলে PENDING রাখব
+
       await prisma.payment.update({
         where: {
           id: payment.id,
