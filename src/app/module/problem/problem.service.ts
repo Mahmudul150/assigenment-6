@@ -140,7 +140,7 @@ const getALlProblem = async (query: IQuery) => {
     });
   }
 
-  // Filter by Problem Type
+  
   if (
     query.type &&
     Object.values(ProblemType).includes(query.type as ProblemType)
@@ -150,7 +150,7 @@ const getALlProblem = async (query: IQuery) => {
     });
   }
 
-  // Filter by Difficulty
+ 
   if (
     query.difficulty &&
     Object.values(Difficulty).includes(query.difficulty as Difficulty)
