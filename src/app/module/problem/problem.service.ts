@@ -216,7 +216,7 @@ const getMyProblems = async (
   query: IQuery,
   user: RequestUser
 ) => {
-  // 1. Company Profile খুঁজে বের করা
+ 
   const company = await prisma.companyProfile.findUnique({
     where: {
       userId: user.userId,
@@ -230,7 +230,7 @@ const getMyProblems = async (
     );
   }
 
-  // 2. Pagination
+ 
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
@@ -247,7 +247,7 @@ const getMyProblems = async (
     },
   ];
 
-  // 3. Search by title and description
+ 
   if (query.searchTerm) {
     andConditions.push({
       OR: [
@@ -267,7 +267,7 @@ const getMyProblems = async (
     });
   }
 
-  // 4. Filter by Problem Type
+ 
   if (
     query.type &&
     Object.values(ProblemType).includes(query.type as ProblemType)
@@ -277,7 +277,7 @@ const getMyProblems = async (
     });
   }
 
-  // 5. Filter by Difficulty
+ 
   if (
     query.difficulty &&
     Object.values(Difficulty).includes(query.difficulty as Difficulty)
@@ -287,14 +287,14 @@ const getMyProblems = async (
     });
   }
 
-  // 6. Filter by Points
+
   if (query.points) {
     andConditions.push({
       points: Number(query.points),
     });
   }
 
-  // 7. Get Problems
+ 
   const allProblem = await prisma.problem.findMany({
     where: {
       AND: andConditions,
@@ -315,7 +315,7 @@ const getMyProblems = async (
     },
   });
 
-  // 8. Total Count
+
   const totalProblemCount = await prisma.problem.count({
     where: {
       AND: andConditions,
@@ -340,7 +340,7 @@ const getProblemById = async (
   problemId: string,
   user: RequestUser
 ) => {
-  // 1. Problem খুঁজে বের করা
+
   const problem = await prisma.problem.findFirst({
     where: {
       id: problemId,
@@ -364,7 +364,6 @@ const getProblemById = async (
     );
   }
 
-  // 2. Company হলে Ownership check
   if (user.role === "COMPANY") {
     const company = await prisma.companyProfile.findUnique({
       where: {
@@ -452,7 +451,7 @@ const deleteProblemById = async (
   user: RequestUser
 ) => {
   const result = await prisma.$transaction(async (tx) => {
-    // 1. Company Profile খুঁজে বের করা
+  
     const existCompanyProfile = await tx.companyProfile.findUnique({
       where: {
         userId: user.userId,
@@ -466,7 +465,7 @@ const deleteProblemById = async (
       );
     }
 
-    // 2. Company approved কি না check
+  
     if (!existCompanyProfile.isApproved) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
@@ -474,7 +473,7 @@ const deleteProblemById = async (
       );
     }
 
-    // 3. Problem খুঁজে বের করা
+  
     const existProblem = await tx.problem.findFirst({
       where: {
         id: problemId,
@@ -490,7 +489,7 @@ const deleteProblemById = async (
       );
     }
 
-    // 4. Soft Delete করা
+
     const deletedProblem = await tx.problem.update({
       where: {
         id: existProblem.id,
@@ -500,7 +499,7 @@ const deleteProblemById = async (
       },
     });
 
-    // 5. Audit Log তৈরি করা
+
     await tx.auditLog.create({
       data: {
         userId: user.userId,
