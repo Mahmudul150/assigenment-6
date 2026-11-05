@@ -6,9 +6,9 @@ model Problem {
   type          ProblemType
   difficulty    Difficulty
   points        Int         @default(0)
-  options       Json? // MCQ options-এর জন্য
-  correctAnswer String? // API Response-এ Candidate-কে সরাসরি পাঠাবেন না
-  testCases     Json? // Hidden test cases (Coding problem-এর জন্য)
+  options       Json? 
+  correctAnswer String? 
+  testCases     Json? 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?

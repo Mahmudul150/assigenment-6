@@ -4,7 +4,7 @@ model Payment {
   assessmentId          String
   amount                Float
   currency              String        @default("BDT")
-  method                String // bKash, SSLCommerz, etc.
+  method                String 
   status                PaymentStatus @default(PENDING)
   merchantInvoiceNumber String        @unique
   bkashPaymentId        String?
