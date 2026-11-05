@@ -29,12 +29,12 @@ router.get(
 );
 
 router.patch(
-  "/tab-switch/:id",
+  "/tab-switch/:attemptId",
   auth(Role.CANDIDATE),
   attemptController.tabSwitch,
 );
 router.post(
-  "/attempt-submit/:id",
+  "/attempt-submit/:attemptId",
   auth(Role.CANDIDATE),
   attemptController.submitAttempt,
 );

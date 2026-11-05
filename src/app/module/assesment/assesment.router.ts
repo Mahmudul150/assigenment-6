@@ -4,7 +4,7 @@ import { Role } from "../../../../generated/prisma/enums";
 import { assesmentController } from "./assesment.controller";
 import { zodValidate } from "../../middleware/zodValidation";
 import { assessmentSchema } from "./assesment.validation";
-// import { assesmentSchema } from "./assesment.validation";
+
 
 const router = Router()
 

@@ -33,7 +33,6 @@ const createProblem = async (
     );
   }
 
-  // MCQ validation
   if (
     payload.type === ProblemType.MCQ &&
     (!payload.options || !payload.correctAnswer)
@@ -44,7 +43,7 @@ const createProblem = async (
     );
   }
 
-  // Coding Problem validation
+
   if (
     payload.type === ProblemType.CODING &&
     !payload.testCases
@@ -55,7 +54,7 @@ const createProblem = async (
     );
   }
 
-  // Points validation
+ 
   if (payload.points !== undefined && payload.points < 0) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -121,7 +120,7 @@ const getALlProblem = async (query: IQuery) => {
     },
   ];
 
-  // Search by title and description
+
   if (query.searchTerm) {
     andConditions.push({
       OR: [

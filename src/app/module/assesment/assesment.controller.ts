@@ -10,9 +10,9 @@ const payload = req.body;
  const  user = req.user!
 	const result = await assesmentService.createAssesment(payload,user);
 	sendResponse(res, {
-		statusCode: httpStatus.OK,
+		statusCode: httpStatus.CREATED,
 		success: true,
-		message: "User profile get successfully",
+		message: "assesment created successfully",
 		data: result,
 	});
 });

@@ -1,260 +1,238 @@
-import { isAfter, isValid } from "date-fns"
-import { prisma } from "../../lib/prisma"
-import { AppError } from "../../middleware/appError"
-import { RequestUser } from "../../middleware/auth"
-import { ICreateAssessment, IUpdateAssessment } from "./assesment.interface"
-import httpStatus from 'http-status'
-import { IQuery } from "../../quaryInterface"
-import { AssessmentWhereInput } from "../../../../generated/prisma/models"
-import { AssessmentStatus, PaymentStatus } from "../../../../generated/prisma/enums"
-import { AuditLogService } from "../auditlogs/auditLog.service"
+import { isAfter, isValid } from "date-fns";
+import { prisma } from "../../lib/prisma";
+import { AppError } from "../../middleware/appError";
+import { RequestUser } from "../../middleware/auth";
+import { ICreateAssessment, IUpdateAssessment } from "./assesment.interface";
+import httpStatus from "http-status";
+import { IQuery } from "../../quaryInterface";
+import { AssessmentWhereInput } from "../../../../generated/prisma/models";
+import {
+  AssessmentStatus,
+  PaymentStatus,
+} from "../../../../generated/prisma/enums";
+import { AuditLogService } from "../auditlogs/auditLog.service";
 
+const createAssesment = async (
+  payload: ICreateAssessment,
+  user: RequestUser,
+) => {
+  const isExistCompnay = await prisma.companyProfile.findUnique({
+    where: {
+      userId: user.userId,
+    },
+    include: {
+      user: true,
+    },
+  });
 
-const createAssesment = async(payload:ICreateAssessment , user:RequestUser)=>{
-        const isExistCompnay = await prisma.companyProfile.findUnique({
-            where:{
-                userId:user.userId
-            },
-            include:{
-                user:true
-            }
-        })
+  if (!isExistCompnay) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
+  }
 
+  if (!isExistCompnay.isApproved) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Company is not approved yet");
+  }
 
-        if (!isExistCompnay) {
-            throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
-        }
-
-         if (!isExistCompnay.isApproved) {
-          throw new AppError(httpStatus.BAD_REQUEST, "Company is not approved yet");
-            }
-          
-          if (isExistCompnay.user.role !== "COMPANY") {
-             throw new AppError(httpStatus.BAD_REQUEST, "Role no Match. Only COMPANY Role can create a assesment ");
-          }  
-
-            const startsAt = payload.startsAt? new Date(payload.startsAt): null;
-
-            const endsAt = payload.endsAt ? new Date(payload.endsAt) : null;
-
-            const now = new Date();
-
-              if (startsAt && !isValid(startsAt)) {
-                 throw new AppError(
-                     httpStatus.BAD_REQUEST,
-                     "Invalid start date"
-                       );
-                      }
-
-             if (endsAt && !isValid(endsAt)) {
-               throw new AppError(
-                     httpStatus.BAD_REQUEST,
-                   "Invalid end date"
-                 );
-                }
-
-            if ( payload.status === "PUBLISHED" &&(!startsAt || !endsAt)) {
-                          throw new AppError(
-                             httpStatus.BAD_REQUEST,
-                      "Published assessment requires start and end dates"
-             );}
-
-            if (startsAt && !isAfter(startsAt, now)) {
-                         throw new AppError(
-                          httpStatus.BAD_REQUEST,
-                        "Start date must be in the future"
-                      );
-                    }
-             
-
-               if ( startsAt && endsAt && !isAfter(endsAt, startsAt)) {
-                    throw new AppError(
-                     httpStatus.BAD_REQUEST,
-                     "End date must be after start date"
-                );
-                 }
-                    
-
-          const createAssesment = await prisma.assessment.create({
-            data:{
-                companyId:isExistCompnay.id,
-                title:payload.title,
-                description:payload.description,
-                durationMinutes:payload.durationMinutes,
-                passingScore:payload.passingScore,
-                status:payload.status,
-                startsAt:startsAt,
-                endsAt:endsAt
-            },
-            include:{
-                company:{
-                    select:{
-                        id:true,
-                        name:true,
-
-                    }
-                }
-            }
-          })
-
-          await AuditLogService.createAuditLog({
-            userId: user.userId,
-            action: "CREATE",
-            entityType: "Assessment",
-            entityId: createAssesment.id,
-            metadata: {
-              title: createAssesment.title,
-              status: createAssesment.status,
-            },
-          });
-
-          return createAssesment
-
-}
-
-
-const getAllAssesment = async(query:IQuery )=>{
-         const limit = query.limit ? Number(query.limit) : 10;
-         const page = query.page ? Number(query.page) : 1;
-         const skip = (page - 1) * limit;
-         const sortBy = query.sortBy ? query.sortBy : "createdAt";
-         const sortOrder = query.sortOrder ? query.sortOrder : "desc";
-    
-         const andConditions: AssessmentWhereInput[] = [];
-
-        if (query.searchTerm) {
-          andConditions.push({
-            OR: [
-              {
-                title: { contains: query.searchTerm  },
-              },
-            ],
-          });
-        }
-
-
-        if (query.status) {
-		andConditions.push({ status: query.status });
-	    }
-
-        if (query.companyId) {
-		andConditions.push({ companyId: query.companyId });
-	}
-
-
-    
-	const assesment = await prisma.assessment.findMany({
-		where: { AND: andConditions },
-		take: limit,
-		skip,
-		orderBy: { [sortBy] : sortOrder },
-		include: {
-			company: { select: { id: true, name: true } },
-			payments: true,
-            
-		},
-	});
-
-    const total = await prisma.assessment.count({
-		where: { AND: andConditions },
-	});
-
-	return {
-		data: assesment,
-		meta: {
-			page,
-			limit,
-			total,
-			totalPages: Math.ceil(total / limit),
-		},
-	};
-
-}
-const getMyAssesment = async(query:IQuery, user :RequestUser)=>{
-
-    const myCompany = await prisma.companyProfile.findUnique({
-        where:{
-            userId:user.userId
-        },
-        include:{
-            user:true,
-        }
-    })
-
-     if (!myCompany) {
+  if (isExistCompnay.user.role !== "COMPANY") {
     throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Company profile not found"
+      httpStatus.BAD_REQUEST,
+      "Role no Match. Only COMPANY Role can create a assesment ",
     );
   }
-  
 
-    const limit = query.limit ? Number(query.limit) : 10;
-	const page = query.page ? Number(query.page) : 1;
-	const skip = (page - 1) * limit;
-	const sortBy = query.sortBy ? query.sortBy : "createdAt";
-	const sortOrder = query.sortOrder ? query.sortOrder : "desc"
+  const startsAt = payload.startsAt ? new Date(payload.startsAt) : null;
 
-    const andConditions: AssessmentWhereInput[] = [
-         {companyId:myCompany.id}
-    ];
+  const endsAt = payload.endsAt ? new Date(payload.endsAt) : null;
 
+  const now = new Date();
 
-      if (query.searchTerm) {
-          andConditions.push({
-            OR: [
-              {
-                title: { equals: query.searchTerm  },
-              },
-            ],
-          });
-        }
+  if (startsAt && !isValid(startsAt)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid start date");
+  }
 
+  if (endsAt && !isValid(endsAt)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid end date");
+  }
 
-        if (query.status) {
-		andConditions.push({ status: query.status });
-	    }
+  if (payload.status === "PUBLISHED" && (!startsAt || !endsAt)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Published assessment requires start and end dates",
+    );
+  }
 
+  if (startsAt && !isAfter(startsAt, now)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Start date must be in the future",
+    );
+  }
 
-    
-	const assesment = await prisma.assessment.findMany({
-		where: { AND: andConditions },
-		take: limit,
-		skip,
-		orderBy: { [sortBy] : sortOrder },
-		include: {
-			company: true,
-            problems:{
-                include:{
-                    problem:true
-                }
-            }
-		},
-	});
+  if (startsAt && endsAt && !isAfter(endsAt, startsAt)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "End date must be after start date",
+    );
+  }
 
-    const total = await prisma.assessment.count({
-		where: { AND: andConditions },
-	});
+  const createAssesment = await prisma.assessment.create({
+    data: {
+      companyId: isExistCompnay.id,
+      title: payload.title,
+      description: payload.description,
+      durationMinutes: payload.durationMinutes,
+      passingScore: payload.passingScore,
+      status: payload.status,
+      startsAt: startsAt,
+      endsAt: endsAt,
+    },
+    include: {
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 
-	return {
-		data: assesment,
-		meta: {
-			page,
-			limit,
-			total,
-			totalPages: Math.ceil(total / limit),
-		},
-	};
+  await AuditLogService.createAuditLog({
+    userId: user.userId,
+    action: "CREATE",
+    entityType: "Assessment",
+    entityId: createAssesment.id,
+    metadata: {
+      title: createAssesment.title,
+      status: createAssesment.status,
+    },
+  });
 
-}
+  return createAssesment;
+};
 
+const getAllAssesment = async (query: IQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+
+  const andConditions: AssessmentWhereInput[] = [];
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          title: { contains: query.searchTerm },
+        },
+      ],
+    });
+  }
+
+  if (query.status) {
+    andConditions.push({ status: query.status });
+  }
+
+  if (query.companyId) {
+    andConditions.push({ companyId: query.companyId });
+  }
+
+  const assesment = await prisma.assessment.findMany({
+    where: { AND: andConditions },
+    take: limit,
+    skip,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      company: { select: { id: true, name: true } },
+      payments: true,
+    },
+  });
+
+  const total = await prisma.assessment.count({
+    where: { AND: andConditions },
+  });
+
+  return {
+    data: assesment,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+const getMyAssesment = async (query: IQuery, user: RequestUser) => {
+  const myCompany = await prisma.companyProfile.findUnique({
+    where: {
+      userId: user.userId,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!myCompany) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
+  }
+
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+
+  const andConditions: AssessmentWhereInput[] = [{ companyId: myCompany.id }];
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          title: { equals: query.searchTerm },
+        },
+      ],
+    });
+  }
+
+  if (query.status) {
+    andConditions.push({ status: query.status });
+  }
+
+  const assesment = await prisma.assessment.findMany({
+    where: { AND: andConditions },
+    take: limit,
+    skip,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      company: true,
+      problems: {
+        include: {
+          problem: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.assessment.count({
+    where: { AND: andConditions },
+  });
+
+  return {
+    data: assesment,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
 
 const updateAssessment = async (
   assessmentId: string,
   payload: IUpdateAssessment,
-  user: RequestUser
+  user: RequestUser,
 ) => {
-
   const existCompanyProfile = await prisma.companyProfile.findUnique({
     where: {
       userId: user.userId,
@@ -262,16 +240,13 @@ const updateAssessment = async (
   });
 
   if (!existCompanyProfile) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Company profile not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
   }
 
   if (!existCompanyProfile.isApproved) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Company profile is not approved"
+      "Company profile is not approved",
     );
   }
 
@@ -285,7 +260,7 @@ const updateAssessment = async (
   if (!existAssessment) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      "Assessment not found or you don't have permission"
+      "Assessment not found or you don't have permission",
     );
   }
 
@@ -295,7 +270,7 @@ const updateAssessment = async (
   ) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "This assessment cannot be updated"
+      "This assessment cannot be updated",
     );
   }
 
@@ -312,18 +287,14 @@ const updateAssessment = async (
     entityType: "Assessment",
     entityId: result.id,
     metadata: {
-      ...payload
+      ...payload,
     },
   });
 
   return result;
 };
 
-
-const assesmentPublished = async (
-  assesmentId: string,
-  user: RequestUser
-) => {
+const assesmentPublished = async (assesmentId: string, user: RequestUser) => {
   const result = await prisma.$transaction(async (tx) => {
     const company = await tx.companyProfile.findUnique({
       where: {
@@ -332,17 +303,11 @@ const assesmentPublished = async (
     });
 
     if (!company) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "Company profile not found"
-      );
+      throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
     }
 
     if (!company.isApproved) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Company is not approved yet"
-      );
+      throw new AppError(httpStatus.BAD_REQUEST, "Company is not approved yet");
     }
 
     const assessment = await tx.assessment.findFirst({
@@ -354,23 +319,20 @@ const assesmentPublished = async (
     });
 
     if (!assessment) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "Assessment not found"
-      );
+      throw new AppError(httpStatus.NOT_FOUND, "Assessment not found");
     }
 
     if (assessment.status !== AssessmentStatus.DRAFT) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Only DRAFT assessment can be published"
+        "Only DRAFT assessment can be published",
       );
     }
 
     if (!assessment.startsAt || !assessment.endsAt) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Start date and end date are required"
+        "Start date and end date are required",
       );
     }
 
@@ -379,14 +341,14 @@ const assesmentPublished = async (
     if (assessment.endsAt <= now) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Assessment end date has expired"
+        "Assessment end date has expired",
       );
     }
 
     if (assessment.endsAt <= assessment.startsAt) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "End date must be after start date"
+        "End date must be after start date",
       );
     }
 
@@ -399,7 +361,7 @@ const assesmentPublished = async (
     if (problemCount === 0) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Please add at least one problem before publishing"
+        "Please add at least one problem before publishing",
       );
     }
 
@@ -414,7 +376,7 @@ const assesmentPublished = async (
     if (!payment) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Please complete payment before publishing assessment"
+        "Please complete payment before publishing assessment",
       );
     }
 
@@ -445,8 +407,7 @@ const assesmentPublished = async (
   return result;
 };
 
-
-const getAllPublishedAssessments = async (query: any ,) => {
+const getAllPublishedAssessments = async (query: any) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
@@ -466,7 +427,6 @@ const getAllPublishedAssessments = async (query: any ,) => {
       },
     });
   }
-
 
   if (query.companyId) {
     andConditions.push({
@@ -494,8 +454,6 @@ const getAllPublishedAssessments = async (query: any ,) => {
     },
   });
 
- 
-
   return {
     data: result,
     meta: {
@@ -507,11 +465,7 @@ const getAllPublishedAssessments = async (query: any ,) => {
   };
 };
 
-
-const deleteAssessment = async (
-  assessmentId: string,
-  user: RequestUser
-) => {
+const deleteAssessment = async (assessmentId: string, user: RequestUser) => {
   const result = await prisma.$transaction(async (tx) => {
     const existCompanyProfile = await tx.companyProfile.findUnique({
       where: {
@@ -520,16 +474,13 @@ const deleteAssessment = async (
     });
 
     if (!existCompanyProfile) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "Company profile not found"
-      );
+      throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
     }
 
     if (!existCompanyProfile.isApproved) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Company profile is not approved"
+        "Company profile is not approved",
       );
     }
 
@@ -544,14 +495,14 @@ const deleteAssessment = async (
     if (!existAssessment) {
       throw new AppError(
         httpStatus.NOT_FOUND,
-        "Assessment not found or you don't have permission"
+        "Assessment not found or you don't have permission",
       );
     }
 
     if (existAssessment.status !== AssessmentStatus.DRAFT) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Only DRAFT assessment can be deleted"
+        "Only DRAFT assessment can be deleted",
       );
     }
 
@@ -566,7 +517,7 @@ const deleteAssessment = async (
     if (paidPayment) {
       throw new AppError(
         httpStatus.CONFLICT,
-        "Paid assessment cannot be deleted"
+        "Paid assessment cannot be deleted",
       );
     }
 
@@ -594,17 +545,12 @@ const deleteAssessment = async (
   return result;
 };
 
-
-
-
-
-
 export const assesmentService = {
-    createAssesment,
-    getAllAssesment,
-    getMyAssesment,
-    updateAssessment,
-    deleteAssessment,
-    assesmentPublished,
-    getAllPublishedAssessments
-}
+  createAssesment,
+  getAllAssesment,
+  getMyAssesment,
+  updateAssessment,
+  deleteAssessment,
+  assesmentPublished,
+  getAllPublishedAssessments,
+};
