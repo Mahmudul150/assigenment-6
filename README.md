@@ -223,6 +223,10 @@ The backend application is deployed on Vercel.
 
 https://assigenment-6-rho.vercel.app/api/v1
 
+**API Documentation:**
+
+https://documenter.getpostman.com/view/50323079/2sBYHYtcot
+
 ## Author
 
 **Mahmudul Hasan**
