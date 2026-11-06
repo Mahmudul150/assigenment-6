@@ -17,7 +17,7 @@ route.post(
 route.post("/email-verify", AuthController.verifyUserEmail);
 route.post(
   "/login",
-  loginLimiter,
+
   zodValidate(authLoginSchema),
   AuthController.loginUser,
 );
