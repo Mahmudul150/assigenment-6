@@ -33,7 +33,7 @@ const paymentCallback = catchAsync(
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "Payments callback processed successfully.",
+      message: "Payment callback processed successfully.",
       data: result,
     });
   },
