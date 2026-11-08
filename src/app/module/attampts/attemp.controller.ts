@@ -77,7 +77,7 @@ const getAttemptProblems = catchAsync(async (req: Request, res: Response) => {
 });
 
 const tabSwitch = catchAsync(async (req: Request, res: Response) => {
-  const attemptId = req.params.id as string;
+  const attemptId = req.params.attemptId as string;
   const user = req.user!;
 
   const result = await AttemptService.tabSwitch(attemptId, user);
