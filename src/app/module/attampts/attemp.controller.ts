@@ -91,7 +91,7 @@ const tabSwitch = catchAsync(async (req: Request, res: Response) => {
 });
 
 const submitAttempt = catchAsync(async (req: Request, res: Response) => {
-  const attemptId = req.params.id as string;
+  const attemptId = req.params.attemptId as string;
   const user = req.user!;
 
   const result = await AttemptService.submitAttempt(attemptId, user);
