@@ -1,0 +1,7 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/attempt/create-attempt/a95e8d8a-2108-4b03-b84f-aadcba76fe6d
+method: POST
+body:
+  type: json
+  content: ""
+order: 1000

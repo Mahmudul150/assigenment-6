@@ -1,0 +1,7 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/assesment/0d069fad-9745-4dc9-b67e-1af6357e2e8f
+method: PATCH
+body:
+  type: json
+  content: "{\r\n    \"passingScore\":30\r\n}"
+order: 4000

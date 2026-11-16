@@ -1,0 +1,5 @@
+workspace:
+  id: fef4d4dd-2af2-45a7-84d2-567dffe5b5b9
+cloudResources:
+  collections:
+    ../postman/collections/Assigenemnt - 6: 50323079-0036d918-2e1e-47b2-9cc1-bbf671fe94f3

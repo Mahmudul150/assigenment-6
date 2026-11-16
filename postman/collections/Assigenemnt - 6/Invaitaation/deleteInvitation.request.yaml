@@ -1,0 +1,13 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/invitation/553cb258-6e6c-40c8-851d-148cb7d40324
+method: DELETE
+body:
+  type: json
+  content: "{\r
+
+    \  \"assessmentId\": \"0ea855e7-e00d-4883-a2c2-e97dbed434dc\",\r
+
+    \  \"email\": \"hasan5016879@gmail.com\"\r
+
+    }"
+order: 6000

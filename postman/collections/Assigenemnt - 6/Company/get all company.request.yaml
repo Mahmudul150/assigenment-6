@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/company/get-allCompnay
+method: GET
+queryParams:
+  - key: industry
+    value: software
+    disabled: true
+body:
+  type: json
+  content: ""
+order: 4000

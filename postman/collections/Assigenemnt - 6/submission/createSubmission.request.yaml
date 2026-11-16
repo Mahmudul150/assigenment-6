@@ -1,0 +1,17 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/submission
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"attemptId\":\"74729dda-251a-4d95-b7c8-24406be3d44d\",\r
+
+    \    \"problemId\":\"8e285793-082b-4151-abfe-3c975c5cbeaa\",\r
+
+    \    \"answer\":   \"Continuous Integration and Continuous Delivery/Deployment\"\r
+
+    \    \r
+
+    }"
+order: 1000

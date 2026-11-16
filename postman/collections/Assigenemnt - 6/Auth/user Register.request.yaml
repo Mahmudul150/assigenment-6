@@ -1,0 +1,31 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/auth/register
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "name": "Sabit Alom ",
+      "email": "mh7742915@gmail.com",
+      "password": "Candidate@13"
+    //   "role": "CANDIDATE",
+    //   "candidate": {
+    //     "bio": "Creative and dedicated software developer with a strong interest in frontend development, problem solving, and creating user-friendly web applications.",
+    //     "phone": "+8801812345678",
+    //     "skills": [
+    //       "HTML",
+    //       "CSS",
+    //       "JavaScript",
+    //       "React.js",
+    //       "Next.js",
+    //       "Tailwind CSS",
+    //       "TypeScript",
+    //       "Git",
+    //       "GitHub"
+    //     ],
+    //     "experienceYears": 1,
+    //     "githubUrl": "https://github.com/sabitdev",
+    //     "linkedinUrl": "https://www.linkedin.com/in/sabit-alom"
+    //   }
+    }
+order: 1000

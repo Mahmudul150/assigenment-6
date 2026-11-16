@@ -1,0 +1,4 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/assesmentproblem/5de747ea-e76d-43f9-b18e-f97a0d4c01f3/problems/9c28d5ae-e072-4c9d-a923-92d787bd64d8
+method: DELETE
+order: 3000

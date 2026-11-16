@@ -1,0 +1,29 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/auth/refresh-token
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "name": "Mahmudul Hasan Maruf",
+        "email": "mahmudulhasanmaruf282@gmail.com",
+        "password": "Patinet$8",
+        "role":"DOCTOR"
+
+        // "patient":{}
+       
+        //   "password":"Pt#12345"
+        // "password": "Patinet@7"
+        // "patient":{}
+
+        // "name": "Mahmudul",
+        // "email":"hasan5016879@gmail.com",
+        // "password": "Maruf@123",
+        // "role":"DOCTOR"
+        
+        // "name":"P2- Maruf",
+        // "email":"mahmudulhasanmaruf282@gmail.com",
+        // "password":"Mf@12345"
+
+    }
+order: 4000

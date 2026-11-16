@@ -1,0 +1,15 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/submission/evaluate/cac8e92d-25b2-40de-95be-498c465fcaa8
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"score\":5,\r
+
+    \    \"feedback\":\"correct ans\"\r
+
+    \    // \"feedback\":\"wrong ans\"\r
+
+    }"
+order: 5000

@@ -43,8 +43,9 @@ route.post(
 
 route.post(
   "/image-upload",
-  upload.single("profileImage"),
   auth(Role.CANDIDATE, Role.COMPANY,Role.ADMIN),
+  upload.single("profileImage"),
+  
   AuthController.uploadImage,
 );
 

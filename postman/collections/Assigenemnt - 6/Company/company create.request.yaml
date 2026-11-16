@@ -1,0 +1,33 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/company/create
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"name\": \"Company-1\",\r
+
+    \   \"email\": \"hasan5016879@gmail.com\",\r
+
+    \    \"password\": \"Company@-1\",\r
+
+    \      \"company\": {\r
+
+    \    \r
+
+    \  \"name\": \"Nexora Technologies\",\r
+
+    \  \"website\": \"https://nexoratech.com\",\r
+
+    \  \"industry\": \"Software Development\",\r
+
+    \  \"description\": \"We specialize in building innovative software solutions, enterprise applications, AI-powered platforms, and scalable cloud technologies for businesses worldwide.\"\r
+
+    }\r
+
+    \  }\r
+
+    \  \r
+
+    \ \r\n"
+order: 1000

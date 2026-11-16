@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/assesment/publish/da17dde7-c849-4568-aeaa-3e707d795672
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \    \"status\":\"PUBLISHED\"\r
+
+    }"
+order: 6000

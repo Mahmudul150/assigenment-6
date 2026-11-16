@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/company/update-profile
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \    \"name\":\"Mahmudul Hasan \"\r
+
+    }"
+order: 3000

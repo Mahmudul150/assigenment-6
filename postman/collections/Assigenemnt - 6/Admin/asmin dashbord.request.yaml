@@ -1,0 +1,15 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/admin/dashboard
+method: GET
+body:
+  type: json
+  content: "{\r
+
+    \    \"attemptId\":\"7619de7f-07d1-4cc8-857a-ce91e20efbe3\",\r
+
+    \    \"problemId\":\"52fd49b1-55c0-4530-894d-4ac469fbc13a\",\r
+
+    \    \"answer\": \"docker build\"\r
+
+    }"
+order: 1000

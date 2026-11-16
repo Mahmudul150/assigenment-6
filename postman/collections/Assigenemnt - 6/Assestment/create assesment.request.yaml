@@ -1,0 +1,23 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/assesment/create-assesment
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"DevOps Engineer Recruitment Assessment\",\r
+
+    \  \"description\": \"This assessment evaluates candidates' technical knowledge of DevOps engineering, Linux fundamentals, shell scripting, Git, GitHub, version control, Docker, Docker Compose, Kubernetes, container orchestration, CI/CD pipelines, GitHub Actions, Jenkins, automated testing, build automation, deployment strategies, AWS, EC2, S3, IAM, VPC, cloud infrastructure, Infrastructure as Code (IaC), Terraform, Ansible, Nginx, reverse proxy, load balancing, PostgreSQL deployment, Redis, environment variable management, application monitoring, Prometheus, Grafana, centralized logging, server security, SSH, SSL/TLS, networking fundamentals, DNS, HTTP/HTTPS, firewalls, backup strategies, scalability, high availability, and production application deployment.\",\r
+
+    \  \"durationMinutes\": 60,\r
+
+    \  \"passingScore\": 40,\r
+
+    \  \"status\": \"DRAFT\",\r
+
+    \  \"startsAt\": \"2026-11-08T22:57:00+06:00\",\r
+
+    \"endsAt\": \"2026-11-12T23:59:00+06:00\"\r
+
+    }"
+order: 1000

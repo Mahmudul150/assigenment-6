@@ -1,0 +1,39 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/assesmentproblem/da17dde7-c849-4568-aeaa-3e707d795672/problems
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"problems\": [\r
+
+    \        {\r
+
+    \            \"problemId\": \"08d0e00c-190a-4751-aab2-cb4a131113d1\",\r
+
+    \            \"order\": 1\r
+
+    \        },\r
+
+    \        {\r
+
+    \            \"problemId\": \"bc274e43-9917-4fbb-9850-69bf70d263ce\",\r
+
+    \            \"order\": 2\r
+
+    \        },\r
+
+    \        {\r
+
+    \            \"problemId\": \"8e285793-082b-4151-abfe-3c975c5cbeaa\",\r
+
+    \            \"order\": 3\r
+
+    \        }\r
+
+    \       \r
+
+    \    ]\r
+
+    }"
+order: 1000

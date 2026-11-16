@@ -1,0 +1,33 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/problem/create-problem
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"CI/CD Pipeline\",\r
+
+    \  \"description\": \"Which of the following is the correct full form of CI/CD in DevOps?\",\r
+
+    \  \"type\": \"MCQ\",\r
+
+    \  \"difficulty\": \"HARD\",\r
+
+    \  \"points\": 20,\r
+
+    \  \"options\": [\r
+
+    \    \"Continuous Integration and Continuous Delivery/Deployment\",\r
+
+    \    \"Central Internet and Cloud Development\",\r
+
+    \    \"Computer Integration and Code Distribution\",\r
+
+    \    \"Continuous Installation and Continuous Debugging\"\r
+
+    \  ],\r
+
+    \  \"correctAnswer\": \"Continuous Integration and Continuous Delivery/Deployment\"\r
+
+    }"
+order: 1000

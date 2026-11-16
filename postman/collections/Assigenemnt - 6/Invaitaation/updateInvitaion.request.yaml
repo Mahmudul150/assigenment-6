@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/invitation/a95e8d8a-2108-4b03-b84f-aadcba76fe6d
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \     \"status\": \"ACCEPTED\"\r
+
+    }"
+order: 5000

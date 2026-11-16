@@ -1,0 +1,15 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/company/approve
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \     \"companyId\":\"62377005-f11c-4b6a-a7ac-0fc2bebdc650\",\r
+
+    \     \"isApproved\":true\r
+
+    \r
+
+    }"
+order: 5000

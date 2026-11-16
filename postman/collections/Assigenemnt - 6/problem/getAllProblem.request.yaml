@@ -1,0 +1,18 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/problem/all-problems?page=1&limit=5
+method: GET
+queryParams:
+  - key: difficulty
+    value: MEDIUM
+    disabled: true
+  - key: page
+    value: "1"
+  - key: limit
+    value: "5"
+body:
+  type: formdata
+  content:
+    - type: text
+      key: difficulty
+      value: medium
+order: 2000

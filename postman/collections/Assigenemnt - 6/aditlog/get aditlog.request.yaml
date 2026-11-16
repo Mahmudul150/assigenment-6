@@ -1,0 +1,8 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/audit-logs?limit=10&page=1&payment
+method: GET
+queryParams:
+  limit: "10"
+  page: "1"
+  payment: null
+order: 1000

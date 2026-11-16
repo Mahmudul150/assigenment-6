@@ -1,0 +1,4 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/attempt/my-attempts
+method: GET
+order: 8000

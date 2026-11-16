@@ -1,0 +1,17 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/auth/email-verify
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    //  \"email\": \"mahmudulhasanmaruf282@gmail.com\",\r
+
+    \      \"email\": \"mh7742915@gmail.com\",\r
+
+    \     \"otp\": \"903530\"\r
+
+    \r
+
+    }"
+order: 2000

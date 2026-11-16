@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/submission/5dee44f1-b701-4e57-aaad-fd9afe4cadde
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \     \"answer\": \"chmod 645 app\"\r
+
+    }"
+order: 4000

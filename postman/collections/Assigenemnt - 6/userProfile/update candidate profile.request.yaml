@@ -1,0 +1,25 @@
+$kind: http-request
+url: https://assigenment-6-rho.vercel.app/api/v1/candidate/updated-profile
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \  \"name\": \"Hasan\",\r
+
+    \  \"phone\": \"01712345678\",\r
+
+    \  \"bio\": \"Passionate web developer interested in building modern web applications.\",\r
+
+    \  \"location\": \"Chittagong , Bangladesh\",\r
+
+    \  \"skills\": [\"JavaScript\", \"TypeScript\", \"React\", \"Next.js\", \"Node.js\", \"Express.js\"],\r
+
+    \  \"experienceYears\": 1,\r
+
+    \  \"githubUrl\": \"https://github.com/mahmudul150\",\r
+
+    \  \"linkedinUrl\": \"https://www.linkedin.com/in/mahmudul-hasan\"\r
+
+    }"
+order: 2000
