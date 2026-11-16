@@ -193,6 +193,9 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 });
 
 const uploadImage = catchAsync(async (req: Request, res: Response) => {
+   console.log("CONTENT TYPE:", req.headers["content-type"]);
+  console.log("REQ FILE:", req.file);
+  console.log("REQ BODY:", req.body);
   const file = req.file?.buffer;
   if (!file) {
     throw new AppError(httpStatus.BAD_REQUEST, "No File Provided.");
