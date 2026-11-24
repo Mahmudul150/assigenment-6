@@ -166,10 +166,15 @@ const paymentCreate = async (
           currency: "BDT",
           intent: "sale",
           merchantInvoiceNumber: payment.merchantInvoiceNumber,
+          
         }),
         signal: AbortSignal.timeout(30000),
       },
+      
     );
+
+    console.log("bKash Callback URL:", config.bkash_callback_url);
+console.log("bKash Base URL:", config.bkash_sendbase_url);
 
     const bkashResult = await bkashPaymentResponse.json();
 
