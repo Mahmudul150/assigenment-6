@@ -47,7 +47,7 @@ const getMyPayments = catchAsync(
      sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "Payment history retrieved successfully",
+      message: "Payments history retrieved successfully",
       data: result,
     });
   }
