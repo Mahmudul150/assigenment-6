@@ -93,7 +93,7 @@ const getAssesmentById = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Assessment retrieved successfully",
+    message: "Assessments retrieved successfully",
     data: result,
   });
 });
