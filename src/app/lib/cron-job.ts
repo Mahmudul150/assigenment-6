@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from './prisma';
 import { AttemptStatus, Role } from '../../../generated/prisma/enums';
+import { finalizeAttempt } from '../utils/finalizeAttempt';
 
 export const deleteUnverifiedCompany = async () => {
     cron.schedule('0 * * * *', async () => {
@@ -37,35 +38,23 @@ export const expireAttempt = async () => {
       const currentDate = new Date();
 
       await prisma.$transaction(async (tx) => {
-        const expiredAttempts = await tx.attempt.updateMany({
+        const expiredAttempts = await tx.attempt.findMany({
           where: {
             status: AttemptStatus.IN_PROGRESS,
             deadlineAt: {
               lte: currentDate,
             },
           },
-          data: {
-            status: AttemptStatus.SUBMITTED,
-            submittedAt: currentDate,
-          },
+          select: { id: true },
         });
 
-        if (expiredAttempts.count > 0) {
-          await tx.submission.updateMany({
-            where: {
-              attempt: {
-                status: AttemptStatus.SUBMITTED,
-                submittedAt: currentDate,
-              },
-              status: "DRAFT",
-            },
-            data: {
-              status: "SUBMITTED",
-            },
-          });
+        for (const attempt of expiredAttempts) {
+          await finalizeAttempt(tx, attempt.id, currentDate);
+        }
 
+        if (expiredAttempts.length > 0) {
           console.log(
-            `Cron: Auto submitted ${expiredAttempts.count} expired attempts`
+            `Cron: Auto finalized ${expiredAttempts.length} expired attempts`
           );
         }
       });

@@ -117,7 +117,7 @@ const getAllAssesment = async (query: IQuery) => {
   const sortBy = query.sortBy ? query.sortBy : "createdAt";
   const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
-  const andConditions: AssessmentWhereInput[] = [];
+  const andConditions: AssessmentWhereInput[] = [{ deletedAt: null }];
 
   if (query.searchTerm) {
     andConditions.push({
@@ -182,7 +182,10 @@ const getMyAssesment = async (query: IQuery, user: RequestUser) => {
   const sortBy = query.sortBy ? query.sortBy : "createdAt";
   const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
-  const andConditions: AssessmentWhereInput[] = [{ companyId: myCompany.id }];
+  const andConditions: AssessmentWhereInput[] = [
+    { companyId: myCompany.id },
+    { deletedAt: null },
+  ];
 
   if (query.searchTerm) {
     andConditions.push({
@@ -375,7 +378,7 @@ const assesmentPublished = async (assesmentId: string, user: RequestUser) => {
 
     if (!payment) {
       throw new AppError(
-        httpStatus.BAD_REQUEST,
+        httpStatus.PAYMENT_REQUIRED,
         "Please complete payment before publishing assessment",
       );
     }
@@ -396,7 +399,9 @@ const assesmentPublished = async (assesmentId: string, user: RequestUser) => {
         entityType: "Assessment",
         entityId: assesmentId,
         metadata: {
-          status: "PUBLISHED",
+          from: AssessmentStatus.DRAFT,
+          to: AssessmentStatus.PUBLISHED,
+          paymentId: payment.id,
         },
       },
     });
@@ -405,6 +410,145 @@ const assesmentPublished = async (assesmentId: string, user: RequestUser) => {
   });
 
   return result;
+};
+
+const assesmentClosed = async (assesmentId: string, user: RequestUser) => {
+  const result = await prisma.$transaction(async (tx) => {
+    const company = await tx.companyProfile.findUnique({
+      where: {
+        userId: user.userId,
+      },
+    });
+
+    if (!company) {
+      throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
+    }
+
+    if (!company.isApproved) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Company is not approved yet");
+    }
+
+    const assessment = await tx.assessment.findFirst({
+      where: {
+        id: assesmentId,
+        companyId: company.id,
+        deletedAt: null,
+      },
+    });
+
+    if (!assessment) {
+      throw new AppError(httpStatus.NOT_FOUND, "Assessment not found");
+    }
+
+    if (assessment.status !== AssessmentStatus.PUBLISHED) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Only PUBLISHED assessment can be closed",
+      );
+    }
+
+    const updatedAssessment = await tx.assessment.update({
+      where: {
+        id: assesmentId,
+      },
+      data: {
+        status: AssessmentStatus.CLOSED,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        userId: user.userId,
+        action: "CLOSE",
+        entityType: "Assessment",
+        entityId: assesmentId,
+        metadata: {
+          from: AssessmentStatus.PUBLISHED,
+          to: AssessmentStatus.CLOSED,
+        },
+      },
+    });
+
+    return updatedAssessment;
+  });
+
+  return result;
+};
+
+const getAssessmentById = async (
+  assesmentId: string,
+  user: RequestUser,
+) => {
+  const company = await prisma.companyProfile.findUnique({
+    where: {
+      userId: user.userId,
+    },
+  });
+
+  if (!company) {
+    throw new AppError(httpStatus.NOT_FOUND, "Company profile not found");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assesmentId,
+      companyId: company.id,
+      deletedAt: null,
+    },
+    include: {
+      company: { select: { id: true, name: true } },
+      problems: {
+        orderBy: { order: "asc" },
+        include: {
+          problem: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              type: true,
+              difficulty: true,
+              points: true,
+            },
+          },
+        },
+      },
+      _count: { select: { invitations: true } },
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found");
+  }
+
+  const latestPayment = await prisma.payment.findFirst({
+    where: {
+      assessmentId: assesmentId,
+      companyId: company.id,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      amount: true,
+      bkashTrxId: true,
+      createdAt: true,
+    },
+  });
+
+  const invitationGroups = await prisma.invitation.groupBy({
+    by: ["status"],
+    where: { assessmentId: assesmentId },
+    _count: { _all: true },
+  });
+
+  return {
+    ...assessment,
+    latestPayment,
+    invitationCount: assessment._count.invitations,
+    invitationsByStatus: Object.fromEntries(
+      invitationGroups.map((group) => [group.status, group._count._all]),
+    ),
+  };
 };
 
 const getAllPublishedAssessments = async (query: any) => {
@@ -552,5 +696,7 @@ export const assesmentService = {
   updateAssessment,
   deleteAssessment,
   assesmentPublished,
+  assesmentClosed,
+  getAssessmentById,
   getAllPublishedAssessments,
 };

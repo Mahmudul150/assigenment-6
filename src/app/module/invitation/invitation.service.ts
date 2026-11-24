@@ -291,6 +291,43 @@ const getMyInvitation = async (
 
 
 
+const getInvitationByToken = async (token: string) => {
+  const invitation = await prisma.invitation.findUnique({
+    where: { token },
+    include: {
+      assessment: {
+        select: {
+          title: true,
+          durationMinutes: true,
+          passingScore: true,
+          company: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  if (!invitation) {
+    throw new AppError(httpStatus.NOT_FOUND, "Invitation not found");
+  }
+
+  if (invitation.expiresAt <= new Date()) {
+    throw new AppError(httpStatus.GONE, "Invitation has expired");
+  }
+
+  return {
+    id: invitation.id,
+    email: invitation.email,
+    status: invitation.status,
+    expiresAt: invitation.expiresAt,
+    assessment: {
+      title: invitation.assessment.title,
+      durationMinutes: invitation.assessment.durationMinutes,
+      passingScore: invitation.assessment.passingScore,
+    },
+    company: { name: invitation.assessment.company.name },
+  };
+};
+
 const getSingleInvitation = async (
   id: string,
   user: RequestUser
@@ -544,6 +581,7 @@ export const InvitationService = {
   createInvitation,
   getAllInvitation,
   getMyInvitation,
+  getInvitationByToken,
   getSingleInvitation,
   updateInvitation,
   deleteInvitation,

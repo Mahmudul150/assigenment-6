@@ -4,6 +4,7 @@ import {
   PaymentStatus,
 } from "../../../../generated/prisma/enums";
 import { PaymentWhereInput } from "../../../../generated/prisma/models";
+import { Prisma } from "../../../../generated/prisma/client";
 import config from "../../config";
 import { getBkashIdToken } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
@@ -100,20 +101,17 @@ const paymentCreate = async (
       );
     }
 
-    const pendingPayment = await tx.payment.findFirst({
+    await tx.payment.updateMany({
       where: {
         assessmentId: assessment.id,
         companyId: company.id,
         status: PaymentStatus.PENDING,
       },
+      data: {
+        status: PaymentStatus.CANCELLED,
+        failureReason: "Superseded by a new payment attempt.",
+      },
     });
-
-    if (pendingPayment) {
-      throw new AppError(
-        httpStatus.CONFLICT,
-        "You already have a pending payment.",
-      );
-    }
 
     const merchantInvoiceNumber = `ASSESS-${randomUUID()}`;
 
@@ -163,7 +161,7 @@ const paymentCreate = async (
         body: JSON.stringify({
           mode: "0011",
           payerReference: user.email,
-          callbackURL: `${config.bkash_callback_url}/payments/bkash/callback`,
+          callbackURL: `${config.bkash_callback_url}`,
           amount: String(ASSESSMENT_FEE),
           currency: "BDT",
           intent: "sale",
@@ -248,23 +246,23 @@ const paymentCreate = async (
       paymentUrl: bkashResult.bkashURL,
     };
   } catch (error) {
- 
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-  
-    await prisma.payment.update({
+    await prisma.payment.updateMany({
       where: {
         id: payment.id,
+        status: PaymentStatus.PENDING,
       },
       data: {
+        status: PaymentStatus.FAILED,
         failureReason:
           error instanceof Error
             ? error.message
             : "Unknown bKash request error.",
       },
     });
+
+    if (error instanceof AppError) {
+      throw error;
+    }
 
     throw new AppError(
       httpStatus.BAD_GATEWAY,
@@ -274,327 +272,301 @@ const paymentCreate = async (
 };
 
 
-const paymentCallback = async (
-  query: Record<string, any>,
-) => {
-  const paymentId = query.paymentID;
-  const status = query.status;
+interface BkashCallbackResult {
+  statusCode?: string;
+  statusMessage?: string;
+  paymentID?: string;
+  merchantInvoiceNumber?: string;
+  amount?: string | number;
+  currency?: string;
+  transactionStatus?: string;
+  trxID?: string;
+  [key: string]: unknown;
+}
 
-  if (!paymentId || !status) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Payment information missing.",
-    );
-  }
+interface PaymentIdentity {
+  id: string;
+  bkashPaymentId: string | null;
+  merchantInvoiceNumber: string;
+  amount: unknown;
+  currency: string;
+}
 
-  const payment = await prisma.payment.findFirst({
-    where: {
-      bkashPaymentId: paymentId,
-    },
-    include: {
-      company: true,
-    },
-  });
+const frontendBaseUrl = () =>
+  String(config.frontend_url ?? "").replace(/\/$/, "");
 
-  if (!payment) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Payment not found.",
-    );
-  }
+const successRedirect = (paymentId: string) =>
+  `${frontendBaseUrl()}/payment/success?paymentId=${paymentId}`;
 
-  if (payment.status === PaymentStatus.PAID) {
-    return {
-      redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=success`,
-    };
-  }
+const cancelRedirect = (paymentId: string) =>
+  `${frontendBaseUrl()}/payment/cancel?paymentId=${paymentId}`;
 
-  if (payment.status !== PaymentStatus.PENDING) {
-    return {
-      redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=${payment.status.toLowerCase()}`,
-    };
-  }
+const failedRedirect = (paymentId?: string) =>
+  `${frontendBaseUrl()}/payment/failed${paymentId ? `?paymentId=${paymentId}` : ""}`;
 
+function bkashHeaders(token: string) {
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: token,
+    "X-App-Key": config.bkash_app_key,
+  };
+}
 
-  if (status === "success") {
-    const bkashIdToken = await getBkashIdToken();
-
-    if (!bkashIdToken) {
-      throw new AppError(
-        httpStatus.BAD_GATEWAY,
-        "Unable to get bKash access token.",
-      );
-    }
-
-    const response = await fetch(
-      `${config.bkash_sendbase_url}/tokenized/checkout/execute`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: bkashIdToken,
-          "X-App-Key": config.bkash_app_key,
-        },
-        body: JSON.stringify({
-          paymentID: paymentId,
-        }),
-        signal: AbortSignal.timeout(30000),
-      },
-    );
-
-    const result = await response.json();
-
-    if (
-      !response.ok ||
-      result.statusCode !== "0000" ||
-      result.transactionStatus !== "Completed" ||
-      !result.trxID
-    ) {
-      throw new AppError(
-        httpStatus.BAD_GATEWAY,
-        result.statusMessage || "Payment verification failed.",
-      );
-    }
-
-    
-    if (
-      result.paymentID !== paymentId ||
-      result.merchantInvoiceNumber !==
-        payment.merchantInvoiceNumber ||
-      Number(result.amount) !== Number(payment.amount) ||
-      result.currency !== payment.currency
-    ) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Payment information does not match.",
-      );
-    }
-
-    const updated = await prisma.$transaction(async (tx) => {
-      const updatedPayment = await tx.payment.updateMany({
-        where: {
-          id: payment.id,
-          status: PaymentStatus.PENDING,
-        },
-        data: {
-          status: PaymentStatus.PAID,
-          bkashTrxId: result.trxID,
-          paidAt: new Date(),
-          failureReason: null,
-          getWayResponse: result,
-        },
-      });
-
-      const currentPayment = await tx.payment.findUnique({
-        where: {
-          id: payment.id,
-        },
-      });
-
-      if (!currentPayment) {
-        throw new AppError(
-          httpStatus.NOT_FOUND,
-          "Payment not found.",
-        );
-      }
-
-      if (
-        updatedPayment.count === 0 &&
-        currentPayment.status !== PaymentStatus.PAID
-      ) {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          "Payment is not pending.",
-        );
-      }
-
-      return {
-        payment: currentPayment,
-        isUpdated: updatedPayment.count > 0,
-      };
-    });
-
-   
-    if (updated.isUpdated) {
-      await AuditLogService.createAuditLog({
-        userId: payment.company.userId,
-        action: "UPDATE",
-        entityType: "Payment",
-        entityId: payment.id,
-        metadata: {
-          status: "PAID",
-          transactionId: result.trxID,
-          amount: payment.amount,
-          currency: payment.currency,
-          assessmentId: payment.assessmentId,
-        },
-      });
-    }
-
-    return {
-      payment: updated.payment,
-      redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=success`,
-    };
-  }
-
-
-  else if (status === "failure" || status === "cancel") {
-    const bkashIdToken = await getBkashIdToken();
-
-    if (!bkashIdToken) {
-      throw new AppError(
-        httpStatus.BAD_GATEWAY,
-        "Unable to get bKash access token.",
-      );
-    }
-
-   
+async function queryBkashPayment(
+  bkashPaymentId: string,
+  token: string,
+): Promise<BkashCallbackResult | null> {
+  try {
     const response = await fetch(
       `${config.bkash_sendbase_url}/tokenized/checkout/payment/status`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: bkashIdToken,
-          "X-App-Key": config.bkash_app_key,
-        },
-        body: JSON.stringify({
-          paymentID: paymentId,
-        }),
+        headers: bkashHeaders(token),
+        body: JSON.stringify({ paymentID: bkashPaymentId }),
         signal: AbortSignal.timeout(30000),
       },
     );
+    const result = (await response.json()) as BkashCallbackResult;
+    if (!response.ok || result.statusCode !== "0000") return null;
+    return result;
+  } catch {
+    return null;
+  }
+}
 
-    const result = await response.json();
+function matchesPayment(
+  result: BkashCallbackResult,
+  payment: PaymentIdentity,
+  strict: boolean,
+) {
+  if (strict) {
+    return (
+      result.paymentID === payment.bkashPaymentId &&
+      result.merchantInvoiceNumber === payment.merchantInvoiceNumber &&
+      Number(result.amount) === Number(payment.amount) &&
+      result.currency === payment.currency
+    );
+  }
 
-    if (
-      !response.ok ||
-      result.statusCode !== "0000"
-    ) {
-      throw new AppError(
-        httpStatus.BAD_GATEWAY,
-        result.statusMessage || "Unable to verify payment status.",
-      );
+  return (
+    (!result.paymentID || result.paymentID === payment.bkashPaymentId) &&
+    (!result.merchantInvoiceNumber ||
+      result.merchantInvoiceNumber === payment.merchantInvoiceNumber) &&
+    (result.amount === undefined ||
+      Number(result.amount) === Number(payment.amount)) &&
+    (!result.currency || result.currency === payment.currency)
+  );
+}
+
+async function settlePayment(
+  payment: {
+    id: string;
+    company: { userId: string };
+    assessmentId: string;
+    amount: unknown;
+    currency: string;
+  },
+  status: PaymentStatus,
+  result: BkashCallbackResult,
+  trxId?: string,
+) {
+  const isPaid = status === PaymentStatus.PAID;
+  const updated = await prisma.payment.updateMany({
+    where: { id: payment.id, status: PaymentStatus.PENDING },
+    data: {
+      status,
+      ...(isPaid
+        ? {
+            bkashTrxId: trxId,
+            paidAt: new Date(),
+            failureReason: null,
+          }
+        : {
+            failureReason:
+              result.statusMessage ||
+              `bKash transaction ${result.transactionStatus ?? "failed"}.`,
+          }),
+      getWayResponse: result as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  if (updated.count > 0) {
+    await AuditLogService.createAuditLog({
+      userId: payment.company.userId,
+      action: "UPDATE",
+      entityType: "Payment",
+      entityId: payment.id,
+      metadata: {
+        status,
+        transactionId: trxId,
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        assessmentId: payment.assessmentId,
+        reason: result.transactionStatus,
+      },
+    });
+  }
+
+  return updated.count > 0;
+}
+
+const paymentCallback = async (query: Record<string, any>) => {
+  const bkashPaymentId = query.paymentID;
+  const callbackStatus = query.status;
+  const internalPaymentId = query.paymentId;
+
+  const payment = await prisma.payment.findFirst({
+    where: {
+      OR: [
+        ...(bkashPaymentId ? [{ bkashPaymentId }] : []),
+        ...(internalPaymentId ? [{ id: internalPaymentId }] : []),
+      ],
+    },
+    include: { company: true },
+  });
+
+  if (!payment) {
+    return { redirectUrl: failedRedirect() };
+  }
+
+  const paymentId = payment.id;
+
+  try {
+    if (payment.status === PaymentStatus.PAID) {
+      return { redirectUrl: successRedirect(paymentId) };
     }
 
+    if (payment.status === PaymentStatus.CANCELLED) {
+      return { redirectUrl: cancelRedirect(paymentId) };
+    }
 
-    if (
-      result.transactionStatus === "Completed" &&
-      result.trxID
-    ) {
-      if (
-        (result.paymentID && result.paymentID !== paymentId) ||
-        (result.merchantInvoiceNumber &&
-          result.merchantInvoiceNumber !==
-            payment.merchantInvoiceNumber) ||
-        (result.amount !== undefined &&
-          Number(result.amount) !== Number(payment.amount)) ||
-        (result.currency &&
-          result.currency !== payment.currency)
-      ) {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          "Payment information does not match.",
+    if (payment.status === PaymentStatus.FAILED) {
+      return { redirectUrl: failedRedirect(paymentId) };
+    }
+
+    const bkashIdToken = await getBkashIdToken();
+    if (!bkashIdToken) {
+      return { redirectUrl: failedRedirect(paymentId) };
+    }
+
+    let result: BkashCallbackResult | null = null;
+    let fromExecute = false;
+
+    if (callbackStatus === "success") {
+      try {
+        const response = await fetch(
+          `${config.bkash_sendbase_url}/tokenized/checkout/execute`,
+          {
+            method: "POST",
+            headers: bkashHeaders(bkashIdToken),
+            body: JSON.stringify({ paymentID: bkashPaymentId }),
+            signal: AbortSignal.timeout(30000),
+          },
+        );
+        const executed = (await response.json()) as BkashCallbackResult;
+        if (
+          response.ok &&
+          executed.statusCode === "0000" &&
+          executed.transactionStatus === "Completed" &&
+          executed.trxID
+        ) {
+          result = executed;
+          fromExecute = true;
+        }
+      } catch {
+        result = null;
+      }
+
+      // Execute failed (or returned an unusable result): ask bKash for the
+      // real status before deciding this payment failed.
+      if (!result) {
+        result = await queryBkashPayment(
+          payment.bkashPaymentId ?? String(bkashPaymentId),
+          bkashIdToken,
         );
       }
 
-      const updated = await prisma.payment.updateMany({
-        where: {
-          id: payment.id,
-          status: PaymentStatus.PENDING,
-        },
-        data: {
-          status: PaymentStatus.PAID,
-          bkashTrxId: result.trxID,
-          paidAt: new Date(),
-          failureReason: null,
-          getWayResponse: result,
-        },
-      });
+      if (
+        result &&
+        result.transactionStatus === "Completed" &&
+        result.trxID &&
+        matchesPayment(result, payment, fromExecute)
+      ) {
+        await settlePayment(
+          payment,
+          PaymentStatus.PAID,
+          result,
+          result.trxID,
+        );
+        return { redirectUrl: successRedirect(paymentId) };
+      }
 
-      if (updated.count > 0) {
-        await AuditLogService.createAuditLog({
-          userId: payment.company.userId,
-          action: "UPDATE",
-          entityType: "Payment",
-          entityId: payment.id,
-          metadata: {
-            status: "PAID",
-            transactionId: result.trxID,
-            amount: payment.amount,
-            currency: payment.currency,
-            assessmentId: payment.assessmentId,
-          },
-        });
+      if (result) {
+        const isCancelled =
+          result.transactionStatus === "Cancelled" ||
+          result.transactionStatus === "Canceled";
+        await settlePayment(
+          payment,
+          isCancelled ? PaymentStatus.CANCELLED : PaymentStatus.FAILED,
+          result,
+        );
+        return {
+          redirectUrl: isCancelled
+            ? cancelRedirect(paymentId)
+            : failedRedirect(paymentId),
+        };
+      }
+
+      return { redirectUrl: failedRedirect(paymentId) };
+    }
+
+    if (callbackStatus === "failure" || callbackStatus === "cancel") {
+      const result = await queryBkashPayment(
+        payment.bkashPaymentId ?? String(bkashPaymentId),
+        bkashIdToken,
+      );
+
+      if (
+        result &&
+        result.transactionStatus === "Completed" &&
+        result.trxID &&
+        matchesPayment(result, payment, false)
+      ) {
+        await settlePayment(payment, PaymentStatus.PAID, result, result.trxID);
+        return { redirectUrl: successRedirect(paymentId) };
+      }
+
+      if (result) {
+        const isCancelled =
+          callbackStatus === "cancel" ||
+          result.transactionStatus === "Cancelled" ||
+          result.transactionStatus === "Canceled";
+
+        await settlePayment(
+          payment,
+          isCancelled ? PaymentStatus.CANCELLED : PaymentStatus.FAILED,
+          result,
+        );
+        return {
+          redirectUrl: isCancelled
+            ? cancelRedirect(paymentId)
+            : failedRedirect(paymentId),
+        };
       }
 
       return {
-        redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=success`,
+        redirectUrl:
+          callbackStatus === "cancel"
+            ? cancelRedirect(paymentId)
+            : failedRedirect(paymentId),
       };
     }
 
- 
-    if (
-      result.transactionStatus === "Failed" ||
-      result.transactionStatus === "Cancelled" ||
-      result.transactionStatus === "Canceled"
-    ) {
-      const isCancelled =
-        result.transactionStatus === "Cancelled" ||
-        result.transactionStatus === "Canceled";
-
-      const finalStatus = isCancelled
-        ? PaymentStatus.CANCELLED
-        : PaymentStatus.FAILED;
-
-      const updated = await prisma.payment.updateMany({
-        where: {
-          id: payment.id,
-          status: PaymentStatus.PENDING,
-        },
-        data: {
-          status: finalStatus,
-          failureReason:
-            result.statusMessage ||
-            `bKash transaction ${result.transactionStatus}.`,
-          getWayResponse: result,
-        },
-      });
-
-      if (updated.count > 0) {
-        await AuditLogService.createAuditLog({
-          userId: payment.company.userId,
-          action: "UPDATE",
-          entityType: "Payment",
-          entityId: payment.id,
-          metadata: {
-            status: finalStatus,
-            amount: payment.amount,
-            currency: payment.currency,
-            assessmentId: payment.assessmentId,
-            reason: result.transactionStatus,
-          },
-        });
-      }
-
-      return {
-        redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=${isCancelled ? "cancel" : "failure"}`,
-      };
-    }
-
-  
-    return {
-      redirectUrl: `${config.frontend_url}/dashboard/assessments?payment=pending`,
-    };
-  }
-
-  else {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Invalid payment status.",
-    );
+    return { redirectUrl: failedRedirect(paymentId) };
+  } catch (error) {
+    console.error("Payment callback error:", error);
+    return { redirectUrl: failedRedirect(paymentId) };
   }
 };
 
@@ -760,11 +732,24 @@ const getPaymentById = async (
     );
   }
 
-  const payment = await prisma.payment.findFirst({
+  const paymentInclude = {
+    company: { select: { userId: true, name: true } },
+    assessment: {
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        durationMinutes: true,
+      },
+    },
+  } as const;
+
+  let payment = await prisma.payment.findFirst({
     where: {
       id: paymentId,
       companyId: company.id,
     },
+    include: paymentInclude,
   });
 
   if (!payment) {
@@ -772,6 +757,35 @@ const getPaymentById = async (
       httpStatus.NOT_FOUND,
       "Payment not found.",
     );
+  }
+
+  if (payment.status === PaymentStatus.PENDING && payment.bkashPaymentId) {
+    const bkashIdToken = await getBkashIdToken();
+
+    if (bkashIdToken) {
+      const result = await queryBkashPayment(
+        payment.bkashPaymentId,
+        bkashIdToken,
+      );
+
+      if (
+        result &&
+        result.transactionStatus === "Completed" &&
+        result.trxID &&
+        matchesPayment(result, payment, false)
+      ) {
+        await settlePayment(payment, PaymentStatus.PAID, result, result.trxID);
+
+        const refreshed = await prisma.payment.findFirst({
+          where: {
+            id: paymentId,
+            companyId: company.id,
+          },
+          include: paymentInclude,
+        });
+        if (refreshed) payment = refreshed;
+      }
+    }
   }
 
   return payment;

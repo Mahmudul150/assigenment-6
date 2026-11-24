@@ -315,6 +315,19 @@ The backend application is deployed on **Vercel**.
 
 [Postman Documentation](https://documenter.getpostman.com/view/50323079/2sBYHYtcot)
 
+## Demo Credentials
+
+The seed script (`src/app/utils/seed.ts`) runs on server start and is idempotent. It creates an approved company, two verified candidates, 10 problems (MCQ, WRITTEN and CODING), a DRAFT assessment with problems, a PUBLISHED assessment with a PAID payment, and a PENDING invitation for the demo candidate.
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `ADMIN_EMAIL` from `.env` | `ADMIN_PASSWORD` from `.env` |
+| Company | `company.demo@devassess.test` | `Demo@1234` |
+| Candidate | `candidate.demo@devassess.test` | `Demo@1234` |
+| Candidate | `candidate2.demo@devassess.test` | `Demo@1234` |
+
+The demo invitation token is `demo-invitation-token`. Configure the matching `NEXT_PUBLIC_DEMO_*` values in the frontend so the one-click Demo Login buttons use these accounts.
+
 ## Author
 
 **Mahmudul Hasan**

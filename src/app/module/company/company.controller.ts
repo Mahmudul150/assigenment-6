@@ -68,10 +68,36 @@ const allCompanyget = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMyCompany = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+
+  const result = await companyService.getMyCompany(user);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company profile retrieved successfully",
+    data: result,
+  });
+});
+
+const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+
+  const result = await companyService.getDashboardStats(user);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Company dashboard stats retrieved successfully",
+    data: result,
+  });
+});
+
 export const companyCnontroller = {
   createCompany,
   verifyCompanyEmail,
   updatedProfile,
   allCompanyget,
   isApproved,
+  getMyCompany,
+  getDashboardStats,
 };

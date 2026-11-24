@@ -53,9 +53,9 @@ const getMYAssesment = catchAsync(async (req: Request, res: Response) => {
 const assesmentPublished = catchAsync(async (req: Request, res: Response) => {
 
 	const user = req.user!;
-	const assesmentId = req.params.assesmentId as string;
+	const assessmentId = req.params.assessmentId as string;
     const result = await assesmentService.assesmentPublished(
-		  assesmentId,
+		  assessmentId,
       user,
 	
     );
@@ -68,7 +68,35 @@ const assesmentPublished = catchAsync(async (req: Request, res: Response) => {
     });
   })
 
+const assesmentClosed = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+  const assessmentId = req.params.assessmentId as string;
 
+  const result = await assesmentService.assesmentClosed(assessmentId, user);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Assessment closed successfully",
+    data: result,
+  });
+});
+
+
+
+const getAssesmentById = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+  const assesmentId = req.params.assessmentId as string;
+
+  const result = await assesmentService.getAssessmentById(assesmentId, user);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Assessment retrieved successfully",
+    data: result,
+  });
+});
 
 const getAllPublishedAssessments = catchAsync(
   async (req: Request, res: Response) => {
@@ -125,5 +153,7 @@ export const assesmentController = {
 	updateAssesment,
 	deleteAssesment,
     assesmentPublished,
+    assesmentClosed,
+    getAssesmentById,
 	getAllPublishedAssessments
 }

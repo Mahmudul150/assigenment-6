@@ -45,6 +45,19 @@ const getMyInvitation = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getInvitationByToken = catchAsync(async (req: Request, res: Response) => {
+  const token = req.params.token as string;
+
+  const result = await InvitationService.getInvitationByToken(token);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invitation retrieved successfully",
+    data: result,
+  });
+});
+
 const getSingleInvitation = catchAsync(async (req: Request, res: Response) => {
 
   const user = req.user!
@@ -95,6 +108,7 @@ export const invitationController = {
 	createInvitation,
 	getAllInvitation,
 	getMyInvitation,
+	getInvitationByToken,
 	getSingleInvitation,
 	updateInvitation,
 	deleteInvitation,

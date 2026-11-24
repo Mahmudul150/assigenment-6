@@ -23,6 +23,11 @@ router.get(
 );
 
 router.get(
+	"/token/:token",
+	invitationController.getInvitationByToken,
+);
+
+router.get(
 	"/:id",
 	auth(Role.ADMIN, Role.COMPANY, Role.CANDIDATE),
 	invitationController.getSingleInvitation,

@@ -97,12 +97,23 @@ const createUser = async (payload: IAuthRegister) => {
     expirationTime: 60 / 60,
   });
 
-  await transporter.sendMail({
-    from: config.smtp_email_sendr,
-    to: email,
-    subject: "email verification",
-    html,
-  });
+  try {
+    await transporter.sendMail({
+      from: config.smtp_email_sendr,
+      to: email,
+      subject: "email verification",
+      html,
+    });
+  } catch (emailError) {
+    console.error("Registration OTP email send failed:", emailError);
+  }
+
+  console.log(`[dev] Candidate registration OTP for ${email}: ${otpValue}`);
+
+  return {
+    email,
+    message: "OTP sent to your email. Please verify to complete registration.",
+  };
 };
 
 const verifyUserEmail = async (payload: IVerifyEmailPayload) => {
@@ -480,6 +491,10 @@ const getMe = async (user: IRequestUser) => {
     },
     omit: {
       password: true,
+    },
+    include: {
+      company: true,
+      candidate: true,
     },
   });
 

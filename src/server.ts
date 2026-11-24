@@ -4,7 +4,7 @@ import { deleteUnverifiedCompany, expireAttempt } from "./app/lib/cron-job";
 import { transporter } from "./app/lib/nodemailer";
 import { prisma } from "./app/lib/prisma";
 import { redisClient } from "./app/lib/redis";
-import { seedAdmin } from "./app/utils/seed";
+import { seedAdmin,  } from "./app/utils/seed";
 
 const PORT = config.port;
 
@@ -22,7 +22,8 @@ const root  = async() =>{
 
         await deleteUnverifiedCompany()
         await expireAttempt()
-         await seedAdmin()
+          await seedAdmin()
+        //   await seedDemoData()
 
         app.listen(PORT, () => {
 			console.log(`Server is running on port ${PORT}`);

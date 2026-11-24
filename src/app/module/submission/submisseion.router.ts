@@ -33,6 +33,7 @@ router.patch(
 router.post(
   "/evaluate/:submissionId",
   auth(Role.COMPANY),
+  zodValidate(SubmissionValidation.evaluateSubmissionValidationSchema),
   submissionController.evaluateSubmission
 );
 

@@ -17,7 +17,7 @@ export const globalErrorHandler = (
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
-    errors = err.errors;
+    errors = err.errors ?? [];
   } else if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
       statusCode = httpStatus.CONFLICT;

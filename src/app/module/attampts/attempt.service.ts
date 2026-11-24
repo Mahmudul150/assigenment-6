@@ -8,6 +8,7 @@ import { AttemptStatus } from "../../../../generated/prisma/enums";
 import { evaluateSubmissionPayload } from "../submission/submission.interface";
 import { AuditLogService } from "../auditlogs/auditLog.service";
 import { Prisma } from "../../../../generated/prisma/client";
+import { finalizeAttempt } from "../../utils/finalizeAttempt";
 
 const createAttempt = async (invitationId: string, user: RequestUser) => {
   const candidate = await prisma.candidateProfile.findUnique({
@@ -338,22 +339,6 @@ const submitAttempt = async (attemptId: string, user: RequestUser) => {
           email: user.email,
         },
       },
-      include: {
-        submissions: true,
-        invitation: {
-          include: {
-            assessment: {
-              include: {
-                problems: {
-                  include: {
-                    problem: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!attempt) {
@@ -367,93 +352,8 @@ const submitAttempt = async (attemptId: string, user: RequestUser) => {
       );
     }
 
-    const problems = attempt.invitation.assessment.problems;
-
-    const problemIds = problems.map((item) => item.problemId);
-
-    const answeredSubmissions = attempt.submissions.filter(
-      (item) => item.answer !== null,
-    );
-
-    const unansweredProblemIds = problemIds.filter(
-      (problemId) =>
-        !attempt.submissions.some(
-          (submission) => submission.problemId === problemId,
-        ),
-    );
-
-    const mcqSubmissions = answeredSubmissions.filter(
-      (submission) =>
-        problems.find((item) => item.problemId === submission.problemId)
-          ?.problem.type === "MCQ",
-    );
-
-    if (unansweredProblemIds.length > 0) {
-      await tx.submission.createMany({
-        data: unansweredProblemIds.map((problemId) => ({
-          attemptId,
-          problemId,
-          answer: Prisma.DbNull,
-          score: 0,
-          status: "EVALUATED",
-        })),
-        skipDuplicates: true,
-      });
-    }
-
-    await Promise.all(
-      mcqSubmissions.map((submission) => {
-        const problem = problems.find(
-          (item) => item.problemId === submission.problemId,
-        )?.problem;
-
-        const isCorrect =
-          JSON.stringify(submission.answer) ===
-          JSON.stringify(problem?.correctAnswer);
-
-        return tx.submission.update({
-          where: {
-            id: submission.id,
-          },
-          data: {
-            score: isCorrect ? problem!.points : 0,
-            status: "EVALUATED",
-            evaluatedAt: submittedAt,
-          },
-        });
-      }),
-    );
-
-    await tx.submission.updateMany({
-      where: {
-        attemptId,
-        status: "DRAFT",
-      },
-      data: {
-        status: "SUBMITTED",
-      },
-    });
-
-    await tx.attempt.update({
-      where: {
-        id: attemptId,
-      },
-      data: {
-        status: AttemptStatus.SUBMITTED,
-        submittedAt,
-      },
-    });
-
-    return tx.attempt.findUnique({
-      where: {
-        id: attemptId,
-      },
-      include: {
-        submissions: true,
-      },
-    });
+    return finalizeAttempt(tx, attemptId, submittedAt);
   });
-
   await AuditLogService.createAuditLog({
     userId: user.userId,
     action: "SUBMIT",

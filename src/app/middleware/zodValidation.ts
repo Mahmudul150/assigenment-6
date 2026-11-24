@@ -14,7 +14,7 @@ export const zodValidate = (zodSchema: z.ZodType) => {
       }));
 
       return next(
-        new AppError(httpStatus.BAD_REQUEST, errors[0].message || "Invalid request data")
+        new AppError(httpStatus.BAD_REQUEST, "Validation failed", errors)
       );
     }
 

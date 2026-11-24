@@ -13,14 +13,26 @@ router.get('/all-assesment', auth(Role.ADMIN) , assesmentController.getAllAssesm
 router.get('/my-assesment', auth(Role.COMPANY) , assesmentController.getMYAssesment)
 
 router.patch(
-  "/publish/:assesmentId",
+  "/:assessmentId/publish",
   auth(Role.COMPANY),
   assesmentController.assesmentPublished
+);
+
+router.patch(
+  "/:assessmentId/close",
+  auth(Role.COMPANY),
+  assesmentController.assesmentClosed
 );
 
 router.get(
   "/all-published-assesment",
   assesmentController.getAllPublishedAssessments
+);
+
+router.get(
+  "/:assessmentId",
+  auth(Role.COMPANY),
+  assesmentController.getAssesmentById
 );
 
 router.patch(

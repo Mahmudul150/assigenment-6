@@ -52,7 +52,7 @@ const updateUserStatus = catchAsync(
     const id = req.params.id as string;
     const payload = req.body;
 
-    const result = await AdminService.adminUpdateUserStatus(id, payload);
+    const result = await AdminService.adminUpdateUserStatus(id, payload, req.user!);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

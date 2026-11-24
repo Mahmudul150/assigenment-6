@@ -18,10 +18,13 @@ import { AuditLogRoutes } from './app/module/auditlogs/auditLog.route';
 import { AdminRoutes } from './app/module/admin/admin.router';
 import { notFound } from './app/middleware/notfound';
 import helmet from 'helmet';
+import { apiLimiter } from './app/lib/retLimitar';
 
 
 const app: Application = express();
+app.set("trust proxy", 1);
 app.use(helmet())
+app.use(apiLimiter)
 app.use(
     cors({
         origin: config.frontend_url,

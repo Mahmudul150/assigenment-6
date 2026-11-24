@@ -9,7 +9,14 @@ const createSubmissionValidationSchema = z.object({
 const updateSubmissionValidationSchema = z.object({
   answer: z.any()
 })
+
+const evaluateSubmissionValidationSchema = z.object({
+  score: z.number().min(0, "Score cannot be negative"),
+  feedback: z.string().optional(),
+});
+
 export const SubmissionValidation = {
   createSubmissionValidationSchema,
   updateSubmissionValidationSchema,
+  evaluateSubmissionValidationSchema,
 };

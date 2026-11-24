@@ -5,16 +5,17 @@ import { Role } from "../../../../generated/prisma/enums";
 import { zodValidate } from "../../middleware/zodValidation";
 import { authLoginSchema, UserValidaton } from "./auth.validation";
 import { upload } from "../../lib/multer";
-import { loginLimiter } from "../../lib/retLimitar";
+import { loginLimiter, otpLimiter } from "../../lib/retLimitar";
 
 const route = Router();
 
 route.post(
   "/register",
+  otpLimiter,
   zodValidate(UserValidaton.authRegisterSchema),
   AuthController.createUser,
 );
-route.post("/email-verify", AuthController.verifyUserEmail);
+route.post("/email-verify", otpLimiter, AuthController.verifyUserEmail);
 route.post(
   "/login",
   loginLimiter,
@@ -31,12 +32,14 @@ route.get(
 );
 route.post(
   "/forgot-password",
+  otpLimiter,
   zodValidate(UserValidaton.ForgotPasswordZodSchema),
   AuthController.forgotPasseord,
 );
 
 route.post(
   "/reset-password",
+  otpLimiter,
   zodValidate(UserValidaton.ResetPasswordZodSchema),
   AuthController.resetPassword,
 );

@@ -196,6 +196,16 @@ const getAllSubmissions = async (query: IQuery, user: RequestUser ) => {
     });
   }
 
+  if (query.assessmentId) {
+    andConditions.push({
+      attempt: {
+        invitation: {
+          assessmentId: query.assessmentId,
+        },
+      },
+    });
+  }
+
   
 
   const allSubmissions = await prisma.submission.findMany({
@@ -215,6 +225,10 @@ const getAllSubmissions = async (query: IQuery, user: RequestUser ) => {
         select: {
           id: true,
           title: true,
+          description: true,
+          type: true,
+          difficulty: true,
+          points: true,
         },
       },
 
@@ -222,11 +236,21 @@ const getAllSubmissions = async (query: IQuery, user: RequestUser ) => {
         select: {
           id: true,
           status: true,
+          totalScore: true,
           invitation: {
             select: {
-              id: true,
               email: true,
-              assessmentId: true,
+              candidate: {
+                select: {
+                  name: true,
+                },
+              },
+              assessment: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
             },
           },
         },

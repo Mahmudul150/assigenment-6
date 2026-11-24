@@ -120,6 +120,18 @@ const getALlProblem = async (query: IQuery) => {
     },
   ];
 
+  const allowedSortFields = [
+    "createdAt",
+    "updatedAt",
+    "title",
+    "points",
+    "difficulty",
+  ];
+  const finalSortBy = allowedSortFields.includes(sortBy)
+    ? sortBy
+    : "createdAt";
+  const finalSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
 
   if (query.searchTerm) {
     andConditions.push({
@@ -180,7 +192,7 @@ const getALlProblem = async (query: IQuery) => {
     take: limit,
     skip: skip,
     orderBy: {
-      [sortBy]: sortOrder,
+      [finalSortBy]: finalSortOrder,
     },
     include: {
       company: {
@@ -247,6 +259,18 @@ const getMyProblems = async (
     },
   ];
 
+  const allowedSortFields = [
+    "createdAt",
+    "updatedAt",
+    "title",
+    "points",
+    "difficulty",
+  ];
+  const finalSortBy = allowedSortFields.includes(sortBy)
+    ? sortBy
+    : "createdAt";
+  const finalSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
  
   if (query.searchTerm) {
     andConditions.push({
@@ -302,7 +326,7 @@ const getMyProblems = async (
     take: limit,
     skip: skip,
     orderBy: {
-      [sortBy]: sortOrder,
+      [finalSortBy]: finalSortOrder,
     },
     include: {
       company: {

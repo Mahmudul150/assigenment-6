@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponseData";
 import httpStatus from 'http-status'
+import config from "../../config";
 import { PaymentService } from "./payment.service";
 
 const createPayment = catchAsync(async (req: Request, res: Response) => {
@@ -24,18 +25,14 @@ const createPayment = catchAsync(async (req: Request, res: Response) => {
 
 const paymentCallback = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await PaymentService.paymentCallback(req.query);
-
-    if (result.redirectUrl) {
+    try {
+      const result = await PaymentService.paymentCallback(req.query);
       return res.redirect(result.redirectUrl);
+    } catch (error) {
+      console.error("Payment callback controller error:", error);
+      const frontendUrl = String(config.frontend_url ?? "").replace(/\/$/, "");
+      return res.redirect(`${frontendUrl}/payment/failed`);
     }
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Payment callback processed successfully.",
-      data: result,
-    });
   },
 );
 
