@@ -147,13 +147,11 @@ const paymentCreate = async (
         "Unable to get bKash access token.",
       );
     }
-const callbackURL = config.bkash_callback_url;
 
-console.log("BKASH CALLBACK URL:", callbackURL);
 console.log("===== BKASH DEBUG =====");
 console.log("Callback URL:", config.bkash_callback_url);
 console.log("Base URL:", config.bkash_sendbase_url);
-console.log("CALLBACK URL LENGTH:", callbackURL?.length);
+
 console.log("=======================");
 
 
@@ -170,7 +168,7 @@ console.log("=======================");
         body: JSON.stringify({
           mode: "0011",
           payerReference: user.email,
-          callbackURL: `${config.bkash_callback_url}`,
+          callbackURL: `${config.bkash_callback_url}/payments/bkash/callback`,
           amount: String(ASSESSMENT_FEE),
           currency: "BDT",
           intent: "sale",
