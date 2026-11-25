@@ -147,10 +147,13 @@ const paymentCreate = async (
         "Unable to get bKash access token.",
       );
     }
+const callbackURL = config.bkash_callback_url;
 
+console.log("BKASH CALLBACK URL:", callbackURL);
 console.log("===== BKASH DEBUG =====");
 console.log("Callback URL:", config.bkash_callback_url);
 console.log("Base URL:", config.bkash_sendbase_url);
+console.log("CALLBACK URL LENGTH:", callbackURL?.length);
 console.log("=======================");
 
 
