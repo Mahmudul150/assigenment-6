@@ -148,6 +148,12 @@ const paymentCreate = async (
       );
     }
 
+console.log("===== BKASH DEBUG =====");
+console.log("Callback URL:", config.bkash_callback_url);
+console.log("Base URL:", config.bkash_sendbase_url);
+console.log("=======================");
+
+
     const bkashPaymentResponse = await fetch(
       `${config.bkash_sendbase_url}/tokenized/checkout/create`,
       {
@@ -173,11 +179,11 @@ const paymentCreate = async (
       
     );
 
-    console.log("bKash Callback URL:", config.bkash_callback_url);
-console.log("bKash Base URL:", config.bkash_sendbase_url);
 
     const bkashResult = await bkashPaymentResponse.json();
 
+    console.log("bKash HTTP Status:", bkashPaymentResponse.status);
+console.log("bKash Response:", bkashResult);
    
     if (
       !bkashPaymentResponse.ok ||
