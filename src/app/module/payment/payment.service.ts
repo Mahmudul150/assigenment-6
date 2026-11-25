@@ -136,6 +136,17 @@ const paymentCreate = async (
   });
 
   const { payment, company, assessment } = transactionResult;
+  if (process.env.BKASH_MOCK === "true") {
+  const mockId = `MOCK-${payment.id}`;
+  const mockPayment = await prisma.payment.update({
+    where: { id: payment.id },
+    data: { bkashPaymentId: mockId },
+  });
+  return {
+    payment: mockPayment,
+    paymentUrl: `${config.bkash_callback_url}/payments/bkash/callback?paymentID=${mockId}&status=success`,
+  };
+}
 
   
   try {
@@ -456,6 +467,22 @@ const paymentCallback = async (query: Record<string, any>) => {
     if (payment.status === PaymentStatus.FAILED) {
       return { redirectUrl: failedRedirect(paymentId) };
     }
+
+
+    if (payment.bkashPaymentId?.startsWith("MOCK-")) {
+  if (callbackStatus === "success") {
+    const mockTrx = `MOCKTRX-${Date.now()}`;
+    await settlePayment(
+      payment,
+      PaymentStatus.PAID,
+      { transactionStatus: "Completed", trxID: mockTrx },
+      mockTrx,
+    );
+    return { redirectUrl: successRedirect(paymentId) };
+  }
+  return { redirectUrl: failedRedirect(paymentId) };
+}
+
 
     const bkashIdToken = await getBkashIdToken();
     if (!bkashIdToken) {
