@@ -5,6 +5,7 @@ import { sendResponse } from "../../utils/sendResponseData";
 import httpStatus from 'http-status'
 import { candidateProfileService } from "./candidate.service";
 import { AppError } from "../../middleware/appError";
+import { AuthService } from "../auth/auth.service";
 
 const getCandidateProfile = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
@@ -26,6 +27,11 @@ const updatedProfile = catchAsync(async (req: Request, res: Response) => {
 
 	const payload = req.body;
 	const user = req.user!
+	const file = req.file?.buffer;
+
+	if (file) {
+		await AuthService.uploadImage(file, user.userId);
+	}
 
 	const result = await candidateProfileService.updatedProfile(payload,user);
 	sendResponse(res, {

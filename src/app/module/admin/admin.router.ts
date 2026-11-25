@@ -4,6 +4,7 @@ import { auth } from "../../middleware/auth";
 import { Role } from "../../../../generated/prisma/enums";
 import { zodValidate } from "../../middleware/zodValidation";
 import { AdminValidation } from "./admin.validation";
+import { upload } from "../../lib/multer";
 
 const router = Router();
 
@@ -18,6 +19,13 @@ router.patch(
   auth(Role.ADMIN),
   zodValidate(AdminValidation.adminUpdateUserStatusValidationSchema),
   AdminController.updateUserStatus,
+);
+
+router.patch(
+  "/profile/image-upload",
+  auth(Role.ADMIN),
+  upload.single("profileImage"),
+  AdminController.uploadProfileImage,
 );
 
 export const AdminRoutes = router;

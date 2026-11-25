@@ -3,7 +3,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { companyService } from "./compay.service";
 import { sendResponse } from "../../utils/sendResponseData";
 import httpStatus from "http-status";
-import { da } from "zod/locales";
+import { AuthService } from "../auth/auth.service";
 
 const createCompany = catchAsync(async (req: Request, res: Response) => {
   const payload = req.body;
@@ -44,6 +44,11 @@ const isApproved = catchAsync(async (req: Request, res: Response) => {
 const updatedProfile = catchAsync(async (req: Request, res: Response) => {
   const payload = req.body;
   const user = req.user!;
+  const file = req.file?.buffer;
+
+  if (file) {
+    await AuthService.uploadImage(file, user.userId);
+  }
 
   const result = await companyService.updateCompanyProfile(payload, user);
   sendResponse(res, {

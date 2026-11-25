@@ -3,6 +3,8 @@ import httpStatus from "http-status";
 import { AdminService } from "./admin.service";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponseData";
+import { AppError } from "../../middleware/appError";
+import { AuthService } from "../auth/auth.service";
 
 const adminDasboard = catchAsync( async (req: Request, res: Response) => {
     const result = await AdminService.adminDasboard();
@@ -63,9 +65,27 @@ const updateUserStatus = catchAsync(
   }
 );
 
+const uploadProfileImage = catchAsync(async (req: Request, res: Response) => {
+  const file = req.file?.buffer;
+  if (!file) {
+    throw new AppError(httpStatus.BAD_REQUEST, "No File Provided.");
+  }
+
+  const userId = req.user!.userId;
+  const result = await AuthService.uploadImage(file, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Profile image uploaded successfully",
+    data: result,
+  });
+});
+
 export const AdminController = {
   adminDasboard,
   adminGetAllUser,
   adminGetSingleUser,
   updateUserStatus,
+  uploadProfileImage,
 };

@@ -483,6 +483,7 @@ const getMyCompany = async (user: RequestUser) => {
           role: true,
           status: true,
           emailVerified: true,
+          imageUrl: true,
         },
       },
     },
