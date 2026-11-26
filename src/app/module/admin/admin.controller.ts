@@ -12,7 +12,7 @@ const adminDasboard = catchAsync( async (req: Request, res: Response) => {
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "Admin dashboard retrieved successfully",
+      message: "Admin dashboard retrieved successsfully",
       data: result,
     });
   }
