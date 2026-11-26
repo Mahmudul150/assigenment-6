@@ -338,9 +338,12 @@ const refreshToken = async (token: string) => {
   };
 };
 
+
+
+const ALLOWED_GOOGLE_ROLES: Role[] = [Role.CANDIDATE, Role.COMPANY];
+
 const googleLogin = async (payload: IGoogleLoginPayload) => {
   let googleIdTokenPayload: TokenPayload | undefined | null = null;
-
   try {
     const ticket = await googleClientId.verifyIdToken({
       idToken: payload.idToken,
@@ -348,113 +351,53 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
     });
     googleIdTokenPayload = ticket.getPayload();
   } catch (error) {
-    console.log("Invalide google verifacition Id", error);
+    console.log("Google verify error", error);
     throw new AppError(
       httpStatus.UNAUTHORIZED,
       "Invalid or expired Google ID token",
     );
   }
 
-  if (!googleIdTokenPayload) {
-    throw new AppError(
-      httpStatus.UNAUTHORIZED,
-      "Invalid or expired Google ID token",
-    );
-  }
-
-  if (!googleIdTokenPayload.email) {
+  if (!googleIdTokenPayload?.email) {
     throw new AppError(httpStatus.BAD_REQUEST, "Google email not found");
   }
 
-  if (!googleIdTokenPayload.name) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Google name not found");
-  }
+  const { email, sub: googleId } = googleIdTokenPayload;
 
-  const ifUsertExistWithGoogle = await prisma.user.findUnique({
-    where: {
-      email: googleIdTokenPayload.email,
-      role: Role.CANDIDATE,
-      googleId: googleIdTokenPayload.sub,
-    },
-  });
-
-  let user = ifUsertExistWithGoogle;
-
-  if (!ifUsertExistWithGoogle) {
-    const ifUserExistWithCreadential = await prisma.user.findUnique({
-      where: {
-        email: googleIdTokenPayload.email,
-        role: Role.CANDIDATE,
-        authProvider: AuthProvider.CREDENTIAL,
-      },
-    });
-
-    if (ifUserExistWithCreadential) {
-      if (!ifUserExistWithCreadential.emailVerified) {
-        throw new AppError(httpStatus.FORBIDDEN, "Email not verified..!");
-      }
-
-      if (ifUserExistWithCreadential.status === UserStatus.BLOCKED) {
-        throw new AppError(httpStatus.FORBIDDEN, "User is Blocked...!");
-      }
-
-      if (
-        ifUserExistWithCreadential.isDeleted ||
-        ifUserExistWithCreadential.status === UserStatus.INACTIVE
-      ) {
-        throw new AppError(httpStatus.FORBIDDEN, "User is Deleted...!");
-      }
-      user = await prisma.user.update({
-        where: {
-          id: ifUserExistWithCreadential.id,
-        },
-        data: {
-          googleId: googleIdTokenPayload.sub,
-        },
-      });
-    } else {
-      user = await prisma.user.create({
-        data: {
-          name: googleIdTokenPayload.name,
-          email: googleIdTokenPayload.email,
-          role: Role.CANDIDATE,
-          googleId: googleIdTokenPayload.sub,
-          authProvider: AuthProvider.GOOGLE,
-          emailVerified: true,
-          candidate: {
-            create: {
-              name: googleIdTokenPayload.name,
-            },
-          },
-        },
-      });
-
-      const templetePath = path.join(
-        process.cwd(),
-        "src/app/module/template/welcome_template_for_googleLogin.ejs",
-      );
-      const html = await ejs.renderFile(templetePath, {
-        name: user.name,
-        email: user.email,
-      });
-
-      await transporter.sendMail({
-        from: config.smtp_email_sendr,
-        to: user.email,
-        subject: "Wellcome Developer assessment platform",
-        html,
-      });
-    }
-  }
+  let user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User Not Found...");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "No account found with this Google email. Please register first.",
+    );
+  }
+
+  if (!ALLOWED_GOOGLE_ROLES.includes(user.role)) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Google login is only available for candidate and company accounts",
+    );
+  }
+
+  if (!user.googleId) {
+    if (!user.emailVerified) {
+      throw new AppError(httpStatus.FORBIDDEN, "Email not verified..!");
+    }
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { googleId },
+    });
+  } else if (user.googleId !== googleId) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "This email is linked with another Google account",
+    );
   }
 
   if (user.status === UserStatus.BLOCKED) {
     throw new AppError(httpStatus.FORBIDDEN, "User is Blocked...!");
   }
-
   if (user.isDeleted || user.status === UserStatus.INACTIVE) {
     throw new AppError(httpStatus.FORBIDDEN, "User is Deleted...!");
   }
@@ -471,17 +414,13 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
     config.jwt_access_secret,
     config.jwt_access_expires_in as SignOptions,
   );
-
   const refreshToken = jwtUtils.createToken(
     jwtPayload,
     config.jwt_refresh_secret,
     config.jwt_refresh_expires_in as SignOptions,
   );
 
-  return {
-    accessToken,
-    refreshToken,
-  };
+  return { accessToken, refreshToken };
 };
 
 const getMe = async (user: IRequestUser) => {
