@@ -18,43 +18,92 @@ const ASSESSMENT_FEE = Number(config.admin_fee);
 
 const BKASH_CALLBACK_PATH = "/payments/bkash/callback";
 
+const invalidCallbackUrl = (message: string) =>
+  new AppError(httpStatus.INTERNAL_SERVER_ERROR, message);
+
 export const buildBkashCallbackUrl = (): string => {
   const configured = String(config.bkash_callback_url ?? "").trim();
 
   if (!configured) {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      "BKASH_CALLBACK_URL is not configured. Set it to the public backend URL (ending at /api/v1).",
+    throw invalidCallbackUrl(
+      "BKASH_CALLBACK_URL is not configured. Set it to the public backend URL (ending at /api/v1) or the full callback URL.",
     );
   }
 
-  const base = configured.replace(/\/+$/, "");
-  const callbackURL = base.endsWith(BKASH_CALLBACK_PATH)
-    ? base
-    : `${base}${BKASH_CALLBACK_PATH}`;
+  if (/\s/.test(configured)) {
+    throw invalidCallbackUrl(
+      `BKASH_CALLBACK_URL must not contain whitespace. Received: ${configured}`,
+    );
+  }
+
+  if ((configured.match(/https?:\/\//g) ?? []).length !== 1) {
+    throw invalidCallbackUrl(
+      "BKASH_CALLBACK_URL must contain exactly one absolute URL; never concatenate a base URL with a full callback URL.",
+    );
+  }
 
   let parsed: URL;
   try {
-    parsed = new URL(callbackURL);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      throw new Error("unsupported protocol");
-    }
+    parsed = new URL(configured);
   } catch {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      `BKASH_CALLBACK_URL must be an absolute http(s) URL. Received: ${callbackURL}`,
+    throw invalidCallbackUrl(
+      `BKASH_CALLBACK_URL must be an absolute http(s) URL. Received: ${configured}`,
     );
   }
+
+  if (
+    !["http:", "https:"].includes(parsed.protocol) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw invalidCallbackUrl(
+      `BKASH_CALLBACK_URL must be a plain http(s) URL without credentials, query or fragment. Received: ${configured}`,
+    );
+  }
+
+  const pathname = parsed.pathname.replace(/\/+$/, "");
+
+  if (pathname.includes("//") || /%3a%2f%2f/i.test(pathname)) {
+    throw invalidCallbackUrl(
+      `BKASH_CALLBACK_URL contains an embedded URL. Received: ${configured}`,
+    );
+  }
+
+  if ((pathname.match(/\/api\/v1/g) ?? []).length > 1) {
+    throw invalidCallbackUrl(
+      `BKASH_CALLBACK_URL contains a duplicate /api/v1 path. Received: ${configured}`,
+    );
+  }
+
+  if ((pathname.match(/\/payments\/bkash\/callback/g) ?? []).length > 1) {
+    throw invalidCallbackUrl(
+      `BKASH_CALLBACK_URL contains a duplicate callback path. Received: ${configured}`,
+    );
+  }
+
+  const finalPath = pathname.endsWith(BKASH_CALLBACK_PATH)
+    ? pathname
+    : `${pathname}${BKASH_CALLBACK_PATH}`;
+
+  const callbackURL = `${parsed.origin}${finalPath}`;
 
   const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(
     parsed.hostname.toLowerCase(),
   );
 
-  if (config.node_env === "production" && (parsed.protocol !== "https:" || isLocalhost)) {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
+  if (
+    config.node_env === "production" &&
+    (parsed.protocol !== "https:" || isLocalhost)
+  ) {
+    throw invalidCallbackUrl(
       "BKASH_CALLBACK_URL must be a public https URL in production; bKash rejects localhost URLs.",
     );
+  }
+
+  if (config.node_env === "development") {
+    console.log(`bKash callback URL: ${callbackURL}`);
   }
 
   return callbackURL;
