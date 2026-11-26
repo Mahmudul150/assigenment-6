@@ -16,6 +16,49 @@ import { IQuery } from "../../quaryInterface";
 
 const ASSESSMENT_FEE = Number(config.admin_fee);
 
+const BKASH_CALLBACK_PATH = "/payments/bkash/callback";
+
+export const buildBkashCallbackUrl = (): string => {
+  const configured = String(config.bkash_callback_url ?? "").trim();
+
+  if (!configured) {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "BKASH_CALLBACK_URL is not configured. Set it to the public backend URL (ending at /api/v1).",
+    );
+  }
+
+  const base = configured.replace(/\/+$/, "");
+  const callbackURL = base.endsWith(BKASH_CALLBACK_PATH)
+    ? base
+    : `${base}${BKASH_CALLBACK_PATH}`;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(callbackURL);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new Error("unsupported protocol");
+    }
+  } catch {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      `BKASH_CALLBACK_URL must be an absolute http(s) URL. Received: ${callbackURL}`,
+    );
+  }
+
+  const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(
+    parsed.hostname.toLowerCase(),
+  );
+
+  if (config.node_env === "production" && (parsed.protocol !== "https:" || isLocalhost)) {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "BKASH_CALLBACK_URL must be a public https URL in production; bKash rejects localhost URLs.",
+    );
+  }
+
+  return callbackURL;
+};
 
 const paymentCreate = async (
   assessmentId: string,
@@ -147,12 +190,7 @@ const paymentCreate = async (
       );
     }
 
-console.log("===== BKASH DEBUG =====");
-console.log("Callback URL:", config.bkash_callback_url);
-console.log("Base URL:", config.bkash_sendbase_url);
-
-console.log("=======================");
-
+    const callbackURL = buildBkashCallbackUrl();
 
     const bkashPaymentResponse = await fetch(
       `${config.bkash_sendbase_url}/tokenized/checkout/create`,
@@ -167,7 +205,7 @@ console.log("=======================");
         body: JSON.stringify({
           mode: "0011",
           payerReference: user.email,
-          callbackURL: `${config.bkash_callback_url}/payments/bkash/callback`,
+          callbackURL,
           amount: String(ASSESSMENT_FEE),
           currency: "BDT",
           intent: "sale",
@@ -182,29 +220,30 @@ console.log("=======================");
 
     const bkashResult = await bkashPaymentResponse.json();
 
-    console.log("bKash HTTP Status:", bkashPaymentResponse.status);
-console.log("bKash Response:", bkashResult);
-   
     if (
       !bkashPaymentResponse.ok ||
       bkashResult.statusCode !== "0000"
     ) {
+      const isInvalidCallback =
+        bkashResult.statusCode === "2049" ||
+        /merchant callback url/i.test(bkashResult.statusMessage ?? "");
+
+      const failureMessage = isInvalidCallback
+        ? `bKash rejected the callback URL "${callbackURL}". Whitelist this exact URL in the bKash merchant portal (matching protocol, host, path and port).`
+        : bkashResult.statusMessage || "bKash payment failed.";
+
       await prisma.payment.update({
         where: {
           id: payment.id,
         },
         data: {
           status: PaymentStatus.FAILED,
-          failureReason:
-            bkashResult.statusMessage || "bKash payment failed.",
+          failureReason: failureMessage,
           getWayResponse: bkashResult,
         },
       });
 
-      throw new AppError(
-        httpStatus.BAD_GATEWAY,
-        bkashResult.statusMessage || "bKash payment failed.",
-      );
+      throw new AppError(httpStatus.BAD_GATEWAY, failureMessage);
     }
 
     if (!bkashResult.paymentID || !bkashResult.bkashURL) {
